@@ -132,15 +132,26 @@ public class ObstacleSpawner : MonoBehaviour
 
 
 #if UNITY_EDITOR
-
     [ContextMenu("Generar BeatMap Completo")]
     private void GenerateFullBeatMap()
     {
-        if (beatMap == null || musicSource.clip == null) return;
+       
+        if (beatMap == null)
+        {
+            Debug.LogError("[Spawner] No hay un Beatmap asignado en el inspector.");
+            return;
+        }
+        if (musicSource == null || musicSource.clip == null)
+        {
+            Debug.LogError("[Spawner] No hay un AudioSource con un Clip asignado.");
+            return;
+        }
+
+       
+        UnityEditor.Undo.RecordObject(beatMap, "Generar BeatMap Completo");
 
         beatMap.events.Clear();
 
-        // Calculamos cuántos beats tiene la canción en total
         float songDuration = musicSource.clip.length;
         float beatsPerSecond = beatMap.bpm / 60f;
         int totalBeats = Mathf.FloorToInt(songDuration * beatsPerSecond);
@@ -149,8 +160,8 @@ public class ObstacleSpawner : MonoBehaviour
 
         for (int i = 1; i <= totalBeats; i++)
         {
-            // Ejemplo: Spawnea un obstáculo cada 2 beats para que no sea imposible
-            if (i % 2 == 0)
+           
+            if (i % 4 == 0)
             {
                 BeatEvent newEvent = new BeatEvent();
                 newEvent.beat = i;
@@ -160,9 +171,11 @@ public class ObstacleSpawner : MonoBehaviour
             }
         }
 
-        // Esto marca el archivo para que Unity guarde los cambios
+       
         UnityEditor.EditorUtility.SetDirty(beatMap);
-        Debug.Log($"[Spawner] Generados {beatMap.events.Count} obstáculos para toda la canción.");
+        UnityEditor.AssetDatabase.SaveAssets();
+
+        Debug.Log($"[Spawner] ¡Éxito! Generados {beatMap.events.Count} obstáculos para {songDuration:F2} segundos de música.");
     }
 #endif
 }

@@ -5100,3 +5100,8 @@ Start importing Assets/Settings/URP-Performant-Renderer.asset using Guid(707360a
  -> (artifact id: 'fcf2edc17007ff6fd0d1d575c3f4be3d') in 0.002157 seconds
 Number of updated asset objects reloaded before import = 0
 Number of asset objects unloaded after import = 1
+Editor requested this worker to shutdown with reason: Scaling down because of idle timeout
+TcpMessagingSession - receive error: operation aborted. errorcode: 995, details: La operación de E/S se anuló por una salida de subproceso o por una solicitud de aplicación.
+AssetImportWorker is now disconnected from the server
+Process exiting
+Exiting without the bug reporter. Application will terminate with return code 0
