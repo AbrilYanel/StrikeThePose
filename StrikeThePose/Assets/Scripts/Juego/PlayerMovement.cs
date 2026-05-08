@@ -7,9 +7,9 @@ public class PlayerMovement : MonoBehaviour
     [Tooltip("Velocidad de seguimiento del mouse (lerp)")]
     [SerializeField] private float followSpeed = 8f;
 
-    [Tooltip("Límites del movimiento en X (ej: -5 a 5)")]
-    [SerializeField] private float xMin = -5f;
-    [SerializeField] private float xMax = 5f;
+    [Tooltip("Límites del movimiento en X")]
+    [SerializeField] private float xMin = -4f;
+    [SerializeField] private float xMax = 4f;
 
     [Header("Referencias")]
     [SerializeField] private Camera mainCamera;
