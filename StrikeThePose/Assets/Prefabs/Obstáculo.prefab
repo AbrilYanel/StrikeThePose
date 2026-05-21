@@ -164,6 +164,8 @@ MonoBehaviour:
   colorPoseB: {r: 1, g: 0.4, b: 0.2, a: 1}
   colorPoseC: {r: 0.3, g: 0.9, b: 0.3, a: 1}
   colorPoseD: {r: 0.9, g: 0.2, b: 0.8, a: 1}
+  judgeLineZ: 0
+  judgeWindowSeconds: 0.15
   destroyZ: 8
 --- !u!65 &6476581469917459653
 BoxCollider:

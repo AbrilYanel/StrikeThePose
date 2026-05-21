@@ -1409,9 +1409,10 @@ MonoBehaviour:
     type: 3}
   player: {fileID: 1509237971}
   musicSource: {fileID: 1524544575}
-  spawnZ: -20
+  spawnZ: -15
   holeXMin: -4
   holeXMax: 4
+  obstacleSpeed: 8
 --- !u!4 &1695447763
 Transform:
   m_ObjectHideFlags: 0
@@ -1621,7 +1622,7 @@ PrefabInstance:
     - target: {fileID: -8679921383154817045, guid: b4bc6c9578d03fd44b384b2e9417296c,
         type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0.288
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: b4bc6c9578d03fd44b384b2e9417296c,
         type: 3}

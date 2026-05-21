@@ -1,6 +1,5 @@
 using UnityEngine;
 
-
 public enum PoseType
 {
     Idle,
@@ -10,23 +9,20 @@ public enum PoseType
     PoseD
 }
 
-
 public class PoseController : MonoBehaviour
 {
-
     [Header("Animator (opcional)")]
     [SerializeField] private Animator animator;
-    [Tooltip("Nombre del parámetro int en el Animator Controller")]
     [SerializeField] private string animatorPoseParam = "PoseIndex";
 
-    [Header("Sprites (opcional, alternativa al Animator)")]
+    [Header("Sprites (opcional)")]
     [SerializeField] private SpriteRenderer spriteRenderer;
     [SerializeField] private Sprite[] poseSprites;
 
     public PoseType CurrentPose { get; private set; } = PoseType.Idle;
 
-
-
+    public float LastInputTime { get; private set; } = -999f;
+    public PoseType LastInputPose { get; private set; } = PoseType.Idle;
 
     public void SetPose(PoseType pose)
     {
@@ -34,14 +30,15 @@ public class PoseController : MonoBehaviour
 
         CurrentPose = pose;
 
+        if (pose != PoseType.Idle)
+        {
+            LastInputTime = Time.time;
+            LastInputPose = pose;
+        }
+
         ApplyToAnimator(pose);
         ApplyToSprite(pose);
-
-        Debug.Log($"[PoseController] Pose activa {pose}");
     }
-
-    // Aplicación visual
-
 
     private void ApplyToAnimator(PoseType pose)
     {
@@ -52,16 +49,10 @@ public class PoseController : MonoBehaviour
     private void ApplyToSprite(PoseType pose)
     {
         if (spriteRenderer == null || poseSprites == null) return;
-
         int index = (int)pose;
         if (index < poseSprites.Length && poseSprites[index] != null)
             spriteRenderer.sprite = poseSprites[index];
     }
-
-
-    // Consulta para el sistema de detección de colisiones
-
-
 
     public bool MatchesPose(PoseType required)
     {
