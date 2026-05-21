@@ -13,7 +13,7 @@ public class GameManager : MonoBehaviour
         Instance = this;
     }
 
- 
+
 
     public int Score { get; private set; }
     public int Combo { get; private set; }
@@ -24,12 +24,12 @@ public class GameManager : MonoBehaviour
     [SerializeField] private int pointsPerHit = 100;
     [SerializeField] private int comboBonusEvery = 5;  // cada N combo, bonus x2
 
-  
+
 
     [System.Serializable] public class ResultEvent : UnityEvent<bool, PoseType> { }
     public ResultEvent OnObstacleResultEvent;
 
-    
+
 
     public void OnObstacleResult(bool success, PoseType poseRequired)
     {
@@ -48,12 +48,16 @@ public class GameManager : MonoBehaviour
             Misses++;
             Combo = 0;
             Debug.Log($"[GameManager] X MISS | Misses: {Misses}");
+            if (CameraEffects.Instance != null)
+            {
+                CameraEffects.Instance.PlayErrorFeedback();
+            }
         }
 
         OnObstacleResultEvent?.Invoke(success, poseRequired);
     }
 
-  
+
     public void ResetGame()
     {
         Score = 0;

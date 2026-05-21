@@ -5,7 +5,7 @@ using UnityEngine;
 
 public class ObstacleSpawner : MonoBehaviour
 {
- 
+
 
     [Header("Datos rítmicos")]
     [SerializeField] private Beatmap beatMap;
@@ -25,7 +25,7 @@ public class ObstacleSpawner : MonoBehaviour
     [SerializeField] private float holeXMin = -4f;
     [SerializeField] private float holeXMax = 4f;
 
-    
+
 
     private List<BeatEvent> _pendingEvents;
     private int _nextEventIndex = 0;
@@ -38,8 +38,8 @@ public class ObstacleSpawner : MonoBehaviour
     {
         get
         {
-            float speed = 8f; 
-                             
+            float speed = 8f;
+
             return Mathf.Abs(spawnZ) / speed;
         }
     }
@@ -62,7 +62,7 @@ public class ObstacleSpawner : MonoBehaviour
         StartCoroutine(RunSpawner());
     }
 
-   
+
 
     private IEnumerator RunSpawner()
     {
@@ -101,7 +101,7 @@ public class ObstacleSpawner : MonoBehaviour
         Debug.Log("[ObstacleSpawner] BeatMap terminado.");
     }
 
-   
+
 
     private void SpawnObstacle(BeatEvent ev)
     {
@@ -123,13 +123,12 @@ public class ObstacleSpawner : MonoBehaviour
         Debug.Log($"[ObstacleSpawner] Spawn beat {ev.beat} | Pose: {ev.requiredPose} | HoleX: {holePosX:F2}");
     }
 
-   
+
     public void SetPaused(bool paused)
     {
         if (paused) StopAllCoroutines();
         else StartCoroutine(RunSpawner());
     }
-
 
 #if UNITY_EDITOR
     [ContextMenu("Generar BeatMap Completo")]

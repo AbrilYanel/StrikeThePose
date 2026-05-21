@@ -17,10 +17,10 @@ public class Beatmap : ScriptableObject
     [Header("Obstáculos")]
     public List<BeatEvent> events = new List<BeatEvent>();
 
-   
+
     public float SecondsPerBeat => 60f / bpm;
 
-   
+
     public float BeatToSeconds(float beat) =>
         startOffsetSeconds + (beat - 1f) * SecondsPerBeat;
 }

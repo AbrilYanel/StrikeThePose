@@ -14,6 +14,6 @@ public class BeatEvent
     [Tooltip("Posición X del hueco. Dejá en -999 para que sea random en runtime.")]
     public float holePositionX = -999f;
 
- 
+
     public bool IsHoleRandom => holePositionX <= -999f;
 }

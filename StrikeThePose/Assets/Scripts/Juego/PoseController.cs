@@ -21,7 +21,7 @@ public class PoseController : MonoBehaviour
 
     [Header("Sprites (opcional, alternativa al Animator)")]
     [SerializeField] private SpriteRenderer spriteRenderer;
-    [SerializeField] private Sprite[] poseSprites; 
+    [SerializeField] private Sprite[] poseSprites;
 
     public PoseType CurrentPose { get; private set; } = PoseType.Idle;
 
@@ -30,7 +30,7 @@ public class PoseController : MonoBehaviour
 
     public void SetPose(PoseType pose)
     {
-        if (CurrentPose == pose) return;   
+        if (CurrentPose == pose) return;
 
         CurrentPose = pose;
 
@@ -41,7 +41,7 @@ public class PoseController : MonoBehaviour
     }
 
     // Aplicación visual
-  
+
 
     private void ApplyToAnimator(PoseType pose)
     {
@@ -60,9 +60,9 @@ public class PoseController : MonoBehaviour
 
 
     // Consulta para el sistema de detección de colisiones
-    
 
-  
+
+
     public bool MatchesPose(PoseType required)
     {
         return CurrentPose == required;

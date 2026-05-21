@@ -3,7 +3,7 @@ using UnityEngine;
 
 public class Obstacle : MonoBehaviour
 {
-  
+
     [Header("Movimiento")]
     [SerializeField] private float moveSpeed = 8f;
 
@@ -32,14 +32,14 @@ public class Obstacle : MonoBehaviour
     [Tooltip("Posición Z en la que el obstáculo se destruye (detrás del personaje)")]
     [SerializeField] private float destroyZ = -5f;
 
-   
+
     public PoseType RequiredPose { get; private set; }
     public float HolePositionX { get; private set; }
 
     private bool _evaluated = false;   // ya se juzgó al jugador?
     private PoseController _player;
 
-   
+
     public void Initialize(PoseType requiredPose, float holePosX, PoseController player)
     {
         RequiredPose = requiredPose;
@@ -60,22 +60,22 @@ public class Obstacle : MonoBehaviour
             Destroy(gameObject);
     }
 
-   
+
     private void OnTriggerEnter(Collider other)
     {
         Debug.Log("Algo entró en el trigger: " + other.name);
         if (other.CompareTag("Player"))
         {
-           
+
             bool success = _player != null && _player.CurrentPose == RequiredPose;
 
-            
+
             if (GameManager.Instance != null)
             {
                 GameManager.Instance.OnObstacleResult(success, RequiredPose);
             }
 
-           
+
             if (success)
             {
                 Debug.Log("<color=green>¡POSTURA CORRECTA!</color>");
@@ -90,13 +90,13 @@ public class Obstacle : MonoBehaviour
 
     private void SpawnFeedbackEffect(bool success)
     {
-        
+
         foreach (var mr in GetComponentsInChildren<MeshRenderer>())
         {
             mr.material.color = success ? Color.white : Color.black;
         }
 
-        
+
     }
     private bool IsPlayerInHole(float playerX)
     {
@@ -105,7 +105,7 @@ public class Obstacle : MonoBehaviour
                playerX <= HolePositionX + halfHole;
     }
 
-   
+
     private void BuildWall()
     {
         float halfHole = holeWidth / 2f;
@@ -156,7 +156,7 @@ public class Obstacle : MonoBehaviour
             mr.material.color = c;
     }
 
-   
+
 
     private void OnDrawGizmos()
     {

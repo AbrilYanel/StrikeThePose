@@ -15,10 +15,10 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private Camera mainCamera;
     [SerializeField] private PoseController poseController;
 
-  
+
     private float targetX;
 
- 
+
 
     private void Awake()
     {
@@ -37,7 +37,7 @@ public class PlayerMovement : MonoBehaviour
 
 
     // Movimiento con mouse
-  
+
     /// Convierte la posición X del mouse en pantalla a mundo
     /// y mueve el personaje suavemente hacia ese punto.
 
@@ -57,10 +57,10 @@ public class PlayerMovement : MonoBehaviour
         transform.position = newPos;
     }
 
-   
+
     // Entrada de poses (teclado)
     // Cada tecla corresponde a una pose.
-   
+
     private void HandlePoseInput()
     {
         if (poseController == null) return;
@@ -84,9 +84,9 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
-   
+
     // Gizmos (editor)
-  
+
 
     private void OnDrawGizmosSelected()
     {
