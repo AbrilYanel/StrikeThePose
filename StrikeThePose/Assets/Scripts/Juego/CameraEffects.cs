@@ -1,21 +1,25 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine.UI;
+﻿using System.Collections;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class CameraEffects : MonoBehaviour
 {
     public static CameraEffects Instance;
 
-    [Header("Configuraci�n Shake")]
+    [Header("Shake")]
     private Vector3 _originalPos;
     private float _shakeTimer;
     [SerializeField] private float _shakeIntensity = 0.2f;
 
-    [Header("Configuraci�n Flash Rojo")]
-    [SerializeField] private Image _damageOverlay; // Arrastra aqu� la imagen del Canvas
-    [SerializeField] private Color _flashColor = new Color(1, 0, 0, 0.4f);
-    [SerializeField] private float _flashDuration = 0.3f;
+    [Header("Flash Error (Rojo)")]
+    [SerializeField] private Image _damageOverlay;
+    [SerializeField] private Color _errorFlashColor = new Color(1f, 0f, 0f, 0.4f);
+    [SerializeField] private float _errorFlashDuration = 0.3f;
+
+    [Header("Flash Acierto (Verde/Dorado)")]
+    [SerializeField] private Image _successOverlay;
+    [SerializeField] private Color _successFlashColor = new Color(0.2f, 1f, 0.4f, 0.3f);
+    [SerializeField] private float _successFlashDuration = 0.2f;
 
     void Awake()
     {
@@ -27,16 +31,15 @@ public class CameraEffects : MonoBehaviour
     {
         _originalPos = transform.localPosition;
 
-        // Asegurarse de que el flash empiece invisible
         if (_damageOverlay != null)
-        {
-            _damageOverlay.color = new Color(_flashColor.r, _flashColor.g, _flashColor.b, 0f);
-        }
+            _damageOverlay.color = Color.clear;
+
+        if (_successOverlay != null)
+            _successOverlay.color = Color.clear;
     }
 
     void Update()
     {
-        // L�gica de Shake
         if (_shakeTimer > 0)
         {
             transform.localPosition = _originalPos + Random.insideUnitSphere * _shakeIntensity;
@@ -48,31 +51,51 @@ public class CameraEffects : MonoBehaviour
         }
     }
 
-
+    // ─── ERROR ───
     public void PlayErrorFeedback()
     {
-        // Iniciar Shake
-        _shakeTimer = _flashDuration;
+        _shakeTimer = _errorFlashDuration;
 
-        // Iniciar Flash
         if (_damageOverlay != null)
         {
-            StopAllCoroutines();
-            StartCoroutine(FlashRoutine());
+            StopCoroutine(nameof(ErrorFlashRoutine));
+            StartCoroutine(ErrorFlashRoutine());
         }
     }
 
-    private IEnumerator FlashRoutine()
+    private IEnumerator ErrorFlashRoutine()
     {
         float elapsed = 0f;
-
-        while (elapsed < _flashDuration)
+        while (elapsed < _errorFlashDuration)
         {
             elapsed += Time.deltaTime;
-            // Interpolar el alpha de 0.4 a 0
-            float alpha = Mathf.Lerp(_flashColor.a, 0f, elapsed / _flashDuration);
-            _damageOverlay.color = new Color(_flashColor.r, _flashColor.g, _flashColor.b, alpha);
+            float alpha = Mathf.Lerp(_errorFlashColor.a, 0f, elapsed / _errorFlashDuration);
+            _damageOverlay.color = new Color(_errorFlashColor.r, _errorFlashColor.g, _errorFlashColor.b, alpha);
             yield return null;
         }
+        _damageOverlay.color = Color.clear;
+    }
+
+    // ─── ACIERTO ───
+    public void PlaySuccessFeedback()
+    {
+        if (_successOverlay != null)
+        {
+            StopCoroutine(nameof(SuccessFlashRoutine));
+            StartCoroutine(SuccessFlashRoutine());
+        }
+    }
+
+    private IEnumerator SuccessFlashRoutine()
+    {
+        float elapsed = 0f;
+        while (elapsed < _successFlashDuration)
+        {
+            elapsed += Time.deltaTime;
+            float alpha = Mathf.Lerp(_successFlashColor.a, 0f, elapsed / _successFlashDuration);
+            _successOverlay.color = new Color(_successFlashColor.r, _successFlashColor.g, _successFlashColor.b, alpha);
+            yield return null;
+        }
+        _successOverlay.color = Color.clear;
     }
 }

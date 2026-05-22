@@ -1,10 +1,10 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class ObstacleSpawner : MonoBehaviour
 {
-    [Header("Datos r�tmicos")]
+    [Header("Datos rítmicos")]
     [SerializeField] private Beatmap beatMap;
 
     [Header("Prefab")]
@@ -14,20 +14,28 @@ public class ObstacleSpawner : MonoBehaviour
     [SerializeField] private PoseController player;
     [SerializeField] private AudioSource musicSource;
 
-    [Header("Posici�n de spawn")]
+    [Header("Posición de spawn")]
     [SerializeField] private float spawnZ = -20f;
 
-    [Header("L�mites del hueco aleatorio")]
+    [Header("Límites del hueco aleatorio")]
     [SerializeField] private float holeXMin = -4f;
     [SerializeField] private float holeXMax = 4f;
 
-    [Header("Velocidad del obst�culo")]
+    [Header("Velocidad del obstáculo")]
     [Tooltip("Debe coincidir con moveSpeed en el prefab Obstacle")]
     [SerializeField] private float obstacleSpeed = 8f;
+
+    [Header("Tutorial")]
+    [Tooltip("Cuántos obstáculos al inicio llevan texto de tutorial")]
+    [SerializeField] private int tutorialObstacleCount = 4;
 
     private List<BeatEvent> _pendingEvents;
     private int _nextEventIndex = 0;
     private bool _running = false;
+    private int _spawnedCount = 0;
+
+    // Momento real en que el juego fue iniciado por el jugador
+    private float _gameStartRealTime = -1f;
 
     private float TravelTime => Mathf.Abs(spawnZ) / obstacleSpeed;
 
@@ -44,28 +52,48 @@ public class ObstacleSpawner : MonoBehaviour
         _pendingEvents = new List<BeatEvent>(beatMap.events);
         _pendingEvents.Sort((a, b) => a.beat.CompareTo(b.beat));
 
+        // ✅ No iniciamos la coroutine aquí. Esperamos la señal de UIManager.
+    }
+
+    /// <summary>
+    /// Llamado por UIManager cuando el jugador presiona el botón de inicio.
+    /// </summary>
+    public void StartGame()
+    {
+        if (_running) return;
         StartCoroutine(RunSpawner());
     }
 
     private IEnumerator RunSpawner()
     {
-        float startRealTime = Time.time;
-
+        // Esperar el offset inicial (ya con timeScale = 1)
         yield return new WaitForSeconds(beatMap.startOffsetSeconds);
 
+        // Iniciar música
         if (musicSource != null && beatMap.song != null)
         {
             musicSource.clip = beatMap.song;
             musicSource.Play();
         }
 
+        // Guardar tiempo real de inicio para sincronización
+        _gameStartRealTime = Time.time;
         _running = true;
 
         while (_nextEventIndex < _pendingEvents.Count)
         {
+            if (GameManager.Instance != null && GameManager.Instance.IsGameOver)
+            {
+                musicSource?.Stop();
+                yield break;
+            }
+
+            // ✅ Usamos Time.time relativo al momento de inicio real del juego
+            float elapsed = Time.time - _gameStartRealTime;
+
             float audioTime = (musicSource != null && musicSource.isPlaying)
                 ? musicSource.time
-                : Mathf.Max(0f, Time.time - startRealTime - beatMap.startOffsetSeconds);
+                : Mathf.Max(0f, elapsed);
 
             BeatEvent ev = _pendingEvents[_nextEventIndex];
             float beatTime = beatMap.BeatToSeconds(ev.beat);
@@ -80,8 +108,14 @@ public class ObstacleSpawner : MonoBehaviour
             yield return null;
         }
 
+        // Esperar a que el último obstáculo pase antes de declarar victoria
+        yield return new WaitForSeconds(TravelTime + 1f);
+
         _running = false;
-        Debug.Log("[ObstacleSpawner] BeatMap terminado.");
+        Debug.Log("[ObstacleSpawner] Canción terminada.");
+
+        if (GameManager.Instance != null)
+            GameManager.Instance.OnSongFinished();
     }
 
     private void SpawnObstacle(BeatEvent ev)
@@ -95,8 +129,12 @@ public class ObstacleSpawner : MonoBehaviour
 
         Obstacle obstacle = go.GetComponent<Obstacle>();
         if (obstacle != null)
-            obstacle.Initialize(ev.requiredPose, holePosX, player);
+        {
+            bool isTutorial = _spawnedCount < tutorialObstacleCount;
+            obstacle.Initialize(ev.requiredPose, holePosX, player, isTutorial);
+        }
 
+        _spawnedCount++;
         Debug.Log($"[ObstacleSpawner] Spawn beat {ev.beat} | Pose: {ev.requiredPose} | HoleX: {holePosX:F2}");
     }
 
@@ -144,7 +182,7 @@ public class ObstacleSpawner : MonoBehaviour
 
         UnityEditor.EditorUtility.SetDirty(beatMap);
         UnityEditor.AssetDatabase.SaveAssets();
-        Debug.Log($"[Spawner] Generados {beatMap.events.Count} obst�culos.");
+        Debug.Log($"[Spawner] Generados {beatMap.events.Count} obstáculos.");
     }
 #endif
 }

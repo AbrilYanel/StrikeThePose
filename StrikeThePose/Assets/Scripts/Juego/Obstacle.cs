@@ -1,4 +1,5 @@
 using UnityEngine;
+using TMPro;
 
 public class Obstacle : MonoBehaviour
 {
@@ -23,11 +24,14 @@ public class Obstacle : MonoBehaviour
     [SerializeField] private Color colorPoseD = new Color(0.9f, 0.2f, 0.8f);
 
     [Header("Línea de juicio")]
-    [Tooltip("Ventana en segundos ANTES de que la pared llegue al jugador (ej: 0.15 = 150ms)")]
     [SerializeField] private float judgeWindowSeconds = 0.15f;
 
     [Header("Destrucción")]
     [SerializeField] private float destroyOffset = 3f;
+
+    [Header("Tutorial")]
+    [Tooltip("Transform hijo vacío posicionado encima de la pared donde aparecerá el texto")]
+    [SerializeField] private Transform tutorialTextAnchor;
 
     public PoseType RequiredPose { get; private set; }
     public float HolePositionX { get; private set; }
@@ -36,19 +40,21 @@ public class Obstacle : MonoBehaviour
     private PoseController _player;
     private float _judgeLineZ;
     private float _destroyZ;
+    private GameObject _tutorialLabel;
 
-    public void Initialize(PoseType requiredPose, float holePosX, PoseController player)
+    public void Initialize(PoseType requiredPose, float holePosX, PoseController player, bool showTutorial = false)
     {
         RequiredPose = requiredPose;
         HolePositionX = holePosX;
         _player = player;
-
-        // judgeLineZ se toma de la posición real del jugador en este momento
         _judgeLineZ = player.transform.position.z;
         _destroyZ = _judgeLineZ + destroyOffset;
 
         BuildWall();
         ApplyColor();
+
+        if (showTutorial)
+            SpawnTutorialLabel(requiredPose);
     }
 
     private void Update()
@@ -67,15 +73,16 @@ public class Obstacle : MonoBehaviour
         _evaluated = true;
 
         bool positionOk = IsPlayerInHole(_player.transform.position.x);
-
         float timeSinceInput = Time.time - _player.LastInputTime;
         bool withinWindow = timeSinceInput >= 0f && timeSinceInput <= judgeWindowSeconds;
         bool poseOk = withinWindow && _player.LastInputPose == RequiredPose;
-
         bool success = positionOk && poseOk;
 
         if (GameManager.Instance != null)
             GameManager.Instance.OnObstacleResult(success, RequiredPose);
+
+        if (UIManager.Instance != null)
+            UIManager.Instance.ShowHitFeedback(success);
 
         if (success) Destroy(gameObject);
 
@@ -91,6 +98,66 @@ public class Obstacle : MonoBehaviour
         float halfHole = holeWidth / 2f;
         return playerX >= HolePositionX - halfHole &&
                playerX <= HolePositionX + halfHole;
+    }
+
+    private void SpawnTutorialLabel(PoseType pose)
+    {
+        string keyName = pose switch
+        {
+            PoseType.PoseA => "W",
+            PoseType.PoseB => "A",
+            PoseType.PoseC => "S",
+            PoseType.PoseD => "D",
+            _ => "?"
+        };
+
+        string poseName = pose switch
+        {
+            PoseType.PoseA => "Pose A",
+            PoseType.PoseB => "Pose B",
+            PoseType.PoseC => "Pose C",
+            PoseType.PoseD => "Pose D",
+            _ => "Pose"
+        };
+
+        _tutorialLabel = new GameObject("TutorialLabel");
+        _tutorialLabel.transform.SetParent(transform);
+
+        Vector3 anchorPos = tutorialTextAnchor != null
+            ? tutorialTextAnchor.position
+            : transform.position + new Vector3(HolePositionX, wallHeight + 5f, 0f);
+        _tutorialLabel.transform.position = anchorPos;
+
+        //  Orientar el canvas hacia la cámara (mirando hacia +Z donde está el jugador)
+        _tutorialLabel.transform.rotation = Quaternion.LookRotation(Vector3.back, Vector3.up);
+
+        Canvas canvas = _tutorialLabel.AddComponent<Canvas>();
+        canvas.renderMode = RenderMode.WorldSpace;
+        canvas.worldCamera = Camera.main;
+
+        
+        RectTransform rt = _tutorialLabel.GetComponent<RectTransform>();
+        rt.sizeDelta = new Vector2(600f, 200f);
+        rt.localScale = Vector3.one * 0.005f;
+
+        GameObject textGO = new GameObject("Text");
+        textGO.transform.SetParent(_tutorialLabel.transform, false);
+
+        TextMeshProUGUI tmp = textGO.AddComponent<TextMeshProUGUI>();
+        tmp.text = $"Presioná  <b>{keyName}</b>\n<size=60%>{poseName}</size>";
+        tmp.fontSize = 60;
+        tmp.alignment = TextAlignmentOptions.Center;
+        tmp.color = Color.white;
+
+       
+        tmp.enableWordWrapping = false;
+        tmp.overflowMode = TextOverflowModes.Overflow;
+
+        RectTransform textRT = textGO.GetComponent<RectTransform>();
+        textRT.anchorMin = Vector2.zero;
+        textRT.anchorMax = Vector2.one;
+        textRT.offsetMin = Vector2.zero;
+        textRT.offsetMax = Vector2.zero;
     }
 
     private void BuildWall()
@@ -167,7 +234,6 @@ public class Obstacle : MonoBehaviour
 #if UNITY_EDITOR
         UnityEditor.Handles.color = Color.yellow;
         UnityEditor.Handles.Label(new Vector3(halfW + 0.3f, 0f, jz), "JUDGE");
-
         UnityEditor.Handles.color = Color.green;
         UnityEditor.Handles.Label(
             new Vector3(halfW + 0.3f, 0f, jz - windowDepth),
