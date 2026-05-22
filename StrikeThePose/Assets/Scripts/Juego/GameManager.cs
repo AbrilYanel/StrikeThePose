@@ -23,8 +23,15 @@ public class GameManager : MonoBehaviour
     [Header("Vidas")]
     [SerializeField] private int maxLives = 5;
 
+    [Header("Recuperación de vidas")]
+    [Tooltip("Cantidad de aciertos consecutivos para recuperar una vida")]
+    [SerializeField] private int hitsToRecoverLife = 3;
+
     public bool IsGameOver { get; private set; }
     public bool IsGameWon { get; private set; }
+
+    // ✅ Contador de aciertos consecutivos para recuperar vida
+    private int _consecutiveHits = 0;
 
     [System.Serializable] public class ResultEvent : UnityEvent<bool, PoseType> { }
     [System.Serializable] public class GameOverEvent : UnityEvent { }
@@ -49,10 +56,26 @@ public class GameManager : MonoBehaviour
             if (Combo > MaxCombo) MaxCombo = Combo;
             int bonus = (Combo > 0 && Combo % comboBonusEvery == 0) ? 2 : 1;
             Score += pointsPerHit * bonus;
+
+            // ✅ Contar aciertos consecutivos
+            _consecutiveHits++;
+
+            // ✅ Recuperar vida cada X aciertos
+            if (_consecutiveHits >= hitsToRecoverLife)
+            {
+                _consecutiveHits = 0;
+
+                if (Lives < maxLives)
+                {
+                    Lives=10;
+                    
+                }
+            }
         }
         else
         {
             Combo = 0;
+            _consecutiveHits = 0; // ✅ Resetear contador al fallar
             Lives--;
 
             if (CameraEffects.Instance != null)
@@ -84,5 +107,6 @@ public class GameManager : MonoBehaviour
         Lives = maxLives;
         IsGameOver = false;
         IsGameWon = false;
+        _consecutiveHits = 0;
     }
 }

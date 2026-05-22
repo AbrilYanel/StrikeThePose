@@ -54,14 +54,33 @@ public class UIManager : MonoBehaviour
 
     public bool IsTutorialHintActive { get; private set; } = false;
 
+
+    [Header("Panel de pausa")]
+    [SerializeField] private GameObject pausePanel;
+    [SerializeField] private Button resumeButton;
+    [SerializeField] private Button restartButton;
+    [SerializeField] private Button menuButton;
+    [SerializeField] private string mainMenuSceneName = "MainMenu";
+
+    [Header("Referencias")]
+    [SerializeField] private AudioSource musicSource;
+
+    private bool _isPaused = false;
+    private bool _gameStarted = false;
+
     private void Start()
     {
         winPanel?.SetActive(false);
         losePanel?.SetActive(false);
+        pausePanel?.SetActive(false);
 
         winRetryButton?.onClick.AddListener(RetryLevel);
         loseRetryButton?.onClick.AddListener(RetryLevel);
         tutorialStartButton?.onClick.AddListener(HideTutorialPanel);
+
+        resumeButton?.onClick.AddListener(ResumeGame);
+        restartButton?.onClick.AddListener(RetryLevel);
+        menuButton?.onClick.AddListener(GoToMainMenu);
 
         if (GameManager.Instance != null)
         {
@@ -89,6 +108,21 @@ public class UIManager : MonoBehaviour
     {
         if (GameManager.Instance == null) return;
 
+       
+        if (_gameStarted && !GameManager.Instance.IsGameOver && !GameManager.Instance.IsGameWon)
+        {
+            if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.P))
+            {
+                if (_isPaused)
+                    ResumeGame();
+                else
+                    PauseGame();
+            }
+        }
+
+       
+        if (_isPaused) return;
+
         if (scoreText != null)
             scoreText.text = $"Puntos: {GameManager.Instance.Score}";
 
@@ -103,6 +137,36 @@ public class UIManager : MonoBehaviour
             for (int i = 0; i < GameManager.Instance.Lives; i++) hearts += "♥ ";
             livesText.text = hearts.TrimEnd();
         }
+    }
+
+    private void PauseGame()
+    {
+        _isPaused = true;
+        Time.timeScale = 0f;
+        pausePanel?.SetActive(true);
+
+       
+        if (musicSource != null && musicSource.isPlaying)
+            musicSource.Pause();
+    }
+
+   
+    private void ResumeGame()
+    {
+        _isPaused = false;
+        Time.timeScale = 1f;
+        pausePanel?.SetActive(false);
+
+      
+        if (musicSource != null && !musicSource.isPlaying)
+            musicSource.UnPause();
+    }
+
+   
+    private void GoToMainMenu()
+    {
+        Time.timeScale = 1f;
+        UnityEngine.SceneManagement.SceneManager.LoadScene(mainMenuSceneName);
     }
 
 
@@ -224,6 +288,7 @@ public class UIManager : MonoBehaviour
     {
         tutorialPanel?.SetActive(false);
         Time.timeScale = 1f;
+        _gameStarted = true;
         obstacleSpawner?.StartGame();
     }
 

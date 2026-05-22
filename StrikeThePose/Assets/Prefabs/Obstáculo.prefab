@@ -196,9 +196,10 @@ MonoBehaviour:
   colorPoseB: {r: 1, g: 0.4, b: 0.2, a: 1}
   colorPoseC: {r: 0.3, g: 0.9, b: 0.3, a: 1}
   colorPoseD: {r: 0.9, g: 0.2, b: 0.8, a: 1}
-  judgeWindowSeconds: 0.15
+  earlyWindowSeconds: 0.1
+  lateWindowSeconds: 0.1
   destroyOffset: 3
-  tutorialTextAnchor: {fileID: 8566215660749605915}
+  tutorialShowDistance: 15
 --- !u!65 &6476581469917459653
 BoxCollider:
   m_ObjectHideFlags: 0
