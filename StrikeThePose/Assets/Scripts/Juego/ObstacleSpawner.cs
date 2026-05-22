@@ -27,7 +27,7 @@ public class ObstacleSpawner : MonoBehaviour
 
     [Header("Tutorial")]
     [Tooltip("Cuántos obstáculos al inicio llevan texto de tutorial")]
-    [SerializeField] private int tutorialObstacleCount = 4;
+    [SerializeField] public int tutorialObstacleCount = 10;
 
     private List<BeatEvent> _pendingEvents;
     private int _nextEventIndex = 0;
@@ -52,12 +52,10 @@ public class ObstacleSpawner : MonoBehaviour
         _pendingEvents = new List<BeatEvent>(beatMap.events);
         _pendingEvents.Sort((a, b) => a.beat.CompareTo(b.beat));
 
-        // ✅ No iniciamos la coroutine aquí. Esperamos la señal de UIManager.
+        
     }
 
-    /// <summary>
-    /// Llamado por UIManager cuando el jugador presiona el botón de inicio.
-    /// </summary>
+   
     public void StartGame()
     {
         if (_running) return;
@@ -88,7 +86,7 @@ public class ObstacleSpawner : MonoBehaviour
                 yield break;
             }
 
-            // ✅ Usamos Time.time relativo al momento de inicio real del juego
+            
             float elapsed = Time.time - _gameStartRealTime;
 
             float audioTime = (musicSource != null && musicSource.isPlaying)

@@ -29,43 +29,62 @@ public class Obstacle : MonoBehaviour
     [Header("Destrucción")]
     [SerializeField] private float destroyOffset = 3f;
 
-    [Header("Tutorial")]
-    [Tooltip("Transform hijo vacío posicionado encima de la pared donde aparecerá el texto")]
-    [SerializeField] private Transform tutorialTextAnchor;
-
     public PoseType RequiredPose { get; private set; }
     public float HolePositionX { get; private set; }
 
     private bool _evaluated = false;
+    private bool _isTutorial = false;
+    private bool _tutorialShown = false;
     private PoseController _player;
     private float _judgeLineZ;
     private float _destroyZ;
-    private GameObject _tutorialLabel;
+
+   
+    [Header("Tutorial")]
+    [SerializeField] private float tutorialShowDistance = 8f;
 
     public void Initialize(PoseType requiredPose, float holePosX, PoseController player, bool showTutorial = false)
     {
         RequiredPose = requiredPose;
         HolePositionX = holePosX;
         _player = player;
+        _isTutorial = showTutorial;
         _judgeLineZ = player.transform.position.z;
         _destroyZ = _judgeLineZ + destroyOffset;
 
         BuildWall();
         ApplyColor();
-
-        if (showTutorial)
-            SpawnTutorialLabel(requiredPose);
     }
 
     private void Update()
     {
         transform.position += Vector3.forward * moveSpeed * Time.deltaTime;
 
+       
+        if (_isTutorial && !_tutorialShown && !_evaluated)
+        {
+            float distanceToJudge = Mathf.Abs(transform.position.z - _judgeLineZ);
+            if (distanceToJudge <= tutorialShowDistance)
+            {
+              
+                if (UIManager.Instance != null && !UIManager.Instance.IsTutorialHintActive)
+                {
+                    _tutorialShown = true;
+                    UIManager.Instance.ShowTutorialHint(RequiredPose);
+                }
+            }
+        }
+
         if (!_evaluated && transform.position.z >= _judgeLineZ)
             Evaluate();
 
         if (transform.position.z >= _destroyZ)
+        {
+            if (_isTutorial && _tutorialShown && UIManager.Instance != null)
+                UIManager.Instance.HideTutorialHint();
+
             Destroy(gameObject);
+        }
     }
 
     private void Evaluate()
@@ -84,7 +103,14 @@ public class Obstacle : MonoBehaviour
         if (UIManager.Instance != null)
             UIManager.Instance.ShowHitFeedback(success);
 
-        if (success) Destroy(gameObject);
+        if (success)
+        {
+            
+            if (_isTutorial && UIManager.Instance != null)
+                UIManager.Instance.HideTutorialHint();
+
+            Destroy(gameObject);
+        }
 
         string timing = timeSinceInput <= judgeWindowSeconds
             ? $"{timeSinceInput * 1000f:F0}ms antes"
@@ -98,66 +124,6 @@ public class Obstacle : MonoBehaviour
         float halfHole = holeWidth / 2f;
         return playerX >= HolePositionX - halfHole &&
                playerX <= HolePositionX + halfHole;
-    }
-
-    private void SpawnTutorialLabel(PoseType pose)
-    {
-        string keyName = pose switch
-        {
-            PoseType.PoseA => "W",
-            PoseType.PoseB => "A",
-            PoseType.PoseC => "S",
-            PoseType.PoseD => "D",
-            _ => "?"
-        };
-
-        string poseName = pose switch
-        {
-            PoseType.PoseA => "Pose A",
-            PoseType.PoseB => "Pose B",
-            PoseType.PoseC => "Pose C",
-            PoseType.PoseD => "Pose D",
-            _ => "Pose"
-        };
-
-        _tutorialLabel = new GameObject("TutorialLabel");
-        _tutorialLabel.transform.SetParent(transform);
-
-        Vector3 anchorPos = tutorialTextAnchor != null
-            ? tutorialTextAnchor.position
-            : transform.position + new Vector3(HolePositionX, wallHeight + 5f, 0f);
-        _tutorialLabel.transform.position = anchorPos;
-
-        //  Orientar el canvas hacia la cámara (mirando hacia +Z donde está el jugador)
-        _tutorialLabel.transform.rotation = Quaternion.LookRotation(Vector3.back, Vector3.up);
-
-        Canvas canvas = _tutorialLabel.AddComponent<Canvas>();
-        canvas.renderMode = RenderMode.WorldSpace;
-        canvas.worldCamera = Camera.main;
-
-        
-        RectTransform rt = _tutorialLabel.GetComponent<RectTransform>();
-        rt.sizeDelta = new Vector2(600f, 200f);
-        rt.localScale = Vector3.one * 0.005f;
-
-        GameObject textGO = new GameObject("Text");
-        textGO.transform.SetParent(_tutorialLabel.transform, false);
-
-        TextMeshProUGUI tmp = textGO.AddComponent<TextMeshProUGUI>();
-        tmp.text = $"Presioná  <b>{keyName}</b>\n<size=60%>{poseName}</size>";
-        tmp.fontSize = 60;
-        tmp.alignment = TextAlignmentOptions.Center;
-        tmp.color = Color.white;
-
-       
-        tmp.enableWordWrapping = false;
-        tmp.overflowMode = TextOverflowModes.Overflow;
-
-        RectTransform textRT = textGO.GetComponent<RectTransform>();
-        textRT.anchorMin = Vector2.zero;
-        textRT.anchorMax = Vector2.one;
-        textRT.offsetMin = Vector2.zero;
-        textRT.offsetMax = Vector2.zero;
     }
 
     private void BuildWall()

@@ -38,13 +38,21 @@ public class UIManager : MonoBehaviour
     [SerializeField] private TextMeshProUGUI tutorialText;
     [SerializeField] private Button tutorialStartButton;
 
- 
+    [Header("Tutorial en gameplay")]
+    [Tooltip("Texto grande en el canvas principal que muestra la tecla/pose del próximo obstáculo")]
+    [SerializeField] private TextMeshProUGUI tutorialHintText;
+    [Tooltip("Imagen de fondo opcional detrás del texto de tutorial")]
+    [SerializeField] private GameObject tutorialHintBackground;
+
     [SerializeField] private ObstacleSpawner obstacleSpawner;
 
     private static readonly string[] HitMessages = { "PERFECT!", "NICE!", "GREAT!" };
     private static readonly string[] MissMessages = { "MISS", "TOO LATE", "WRONG POSE", "NOPE" };
 
     private Coroutine _feedbackCoroutine;
+    private Coroutine _tutorialHintCoroutine;
+
+    public bool IsTutorialHintActive { get; private set; } = false;
 
     private void Start()
     {
@@ -61,7 +69,6 @@ public class UIManager : MonoBehaviour
             GameManager.Instance.OnGameWonEvent.AddListener(ShowWinPanel);
         }
 
-       
         if (tutorialPanel != null)
         {
             tutorialPanel.SetActive(true);
@@ -70,6 +77,12 @@ public class UIManager : MonoBehaviour
 
         if (feedbackText != null)
             feedbackText.gameObject.SetActive(false);
+
+        // ✅ Ocultar hint de tutorial al inicio
+        if (tutorialHintText != null)
+            tutorialHintText.gameObject.SetActive(false);
+        if (tutorialHintBackground != null)
+            tutorialHintBackground.SetActive(false);
     }
 
     private void Update()
@@ -90,6 +103,61 @@ public class UIManager : MonoBehaviour
             for (int i = 0; i < GameManager.Instance.Lives; i++) hearts += "♥ ";
             livesText.text = hearts.TrimEnd();
         }
+    }
+
+
+    public void ShowTutorialHint(PoseType pose)
+    {
+        if (tutorialHintText == null) return;
+
+        string keyName = pose switch
+        {
+            PoseType.PoseA => "W",
+            PoseType.PoseB => "A",
+            PoseType.PoseC => "S",
+            PoseType.PoseD => "D",
+            _ => "?"
+        };
+
+        string poseName = pose switch
+        {
+            PoseType.PoseA => "Pose A",
+            PoseType.PoseB => "Pose B",
+            PoseType.PoseC => "Pose C",
+            PoseType.PoseD => "Pose D",
+            _ => "Pose"
+        };
+
+        Color poseColor = pose switch
+        {
+            PoseType.PoseA => new Color(0.2f, 0.6f, 1f),
+            PoseType.PoseB => new Color(1f, 0.4f, 0.2f),
+            PoseType.PoseC => new Color(0.3f, 0.9f, 0.3f),
+            PoseType.PoseD => new Color(0.9f, 0.2f, 0.8f),
+            _ => Color.white
+        };
+
+        tutorialHintText.text = $"Presioná <b><size=150%>{keyName}</size></b>\n{poseName}";
+        tutorialHintText.color = poseColor;
+        tutorialHintText.gameObject.SetActive(true);
+
+        if (tutorialHintBackground != null)
+            tutorialHintBackground.SetActive(true);
+
+        
+        IsTutorialHintActive = true;
+    }
+
+
+    public void HideTutorialHint()
+    {
+        if (tutorialHintText != null)
+            tutorialHintText.gameObject.SetActive(false);
+        if (tutorialHintBackground != null)
+            tutorialHintBackground.SetActive(false);
+
+       
+        IsTutorialHintActive = false;
     }
 
     public void ShowHitFeedback(bool success)
@@ -155,8 +223,6 @@ public class UIManager : MonoBehaviour
     private void HideTutorialPanel()
     {
         tutorialPanel?.SetActive(false);
-
-        
         Time.timeScale = 1f;
         obstacleSpawner?.StartGame();
     }
