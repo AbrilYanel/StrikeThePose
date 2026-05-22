@@ -23,25 +23,29 @@ public class Obstacle : MonoBehaviour
     [SerializeField] private Color colorPoseD = new Color(0.9f, 0.2f, 0.8f);
 
     [Header("Línea de juicio")]
-    [Tooltip("Z del jugador donde se evalúa el acierto")]
-    [SerializeField] private float judgeLineZ = 0f;
     [Tooltip("Ventana en segundos ANTES de que la pared llegue al jugador (ej: 0.15 = 150ms)")]
     [SerializeField] private float judgeWindowSeconds = 0.15f;
 
     [Header("Destrucción")]
-    [SerializeField] private float destroyZ = 5f;
+    [SerializeField] private float destroyOffset = 3f;
 
     public PoseType RequiredPose { get; private set; }
     public float HolePositionX { get; private set; }
 
     private bool _evaluated = false;
     private PoseController _player;
+    private float _judgeLineZ;
+    private float _destroyZ;
 
     public void Initialize(PoseType requiredPose, float holePosX, PoseController player)
     {
         RequiredPose = requiredPose;
         HolePositionX = holePosX;
         _player = player;
+
+        // judgeLineZ se toma de la posición real del jugador en este momento
+        _judgeLineZ = player.transform.position.z;
+        _destroyZ = _judgeLineZ + destroyOffset;
 
         BuildWall();
         ApplyColor();
@@ -51,10 +55,10 @@ public class Obstacle : MonoBehaviour
     {
         transform.position += Vector3.forward * moveSpeed * Time.deltaTime;
 
-        if (!_evaluated && transform.position.z >= judgeLineZ)
+        if (!_evaluated && transform.position.z >= _judgeLineZ)
             Evaluate();
 
-        if (transform.position.z >= destroyZ)
+        if (transform.position.z >= _destroyZ)
             Destroy(gameObject);
     }
 
@@ -64,8 +68,6 @@ public class Obstacle : MonoBehaviour
 
         bool positionOk = IsPlayerInHole(_player.transform.position.x);
 
-        // Sistema Guitar Hero: el input debe haber ocurrido ANTES de que llegue la pared,
-        // dentro de la ventana. Presionar después = miss siempre.
         float timeSinceInput = Time.time - _player.LastInputTime;
         bool withinWindow = timeSinceInput >= 0f && timeSinceInput <= judgeWindowSeconds;
         bool poseOk = withinWindow && _player.LastInputPose == RequiredPose;
@@ -137,47 +139,38 @@ public class Obstacle : MonoBehaviour
 
     private void OnDrawGizmos()
     {
-        // La ventana solo existe ANTES de judgeLineZ (solo early, como Guitar Hero)
+        float jz = Application.isPlaying ? _judgeLineZ : 0f;
         float windowDepth = judgeWindowSeconds * moveSpeed;
         float halfW = totalWidth / 2f;
         float halfH = wallHeight;
 
-        // Hueco del obstáculo (cyan)
         Gizmos.color = new Color(0f, 1f, 1f, 0.3f);
         Gizmos.DrawCube(
             transform.position + new Vector3(HolePositionX, 2.2f, 0f),
             new Vector3(holeWidth, wallHeight, wallDepth));
 
-        // Zona de input válido: solo del lado de donde viene la pared (antes de judgeLineZ)
         Gizmos.color = new Color(0f, 1f, 0f, 0.18f);
         Gizmos.DrawCube(
-            new Vector3(0f, halfH / 2f, judgeLineZ - windowDepth / 2f),
+            new Vector3(0f, halfH / 2f, jz - windowDepth / 2f),
             new Vector3(totalWidth, halfH, windowDepth));
 
-        // Borde early (verde)
         Gizmos.color = Color.green;
-        Gizmos.DrawLine(
-            new Vector3(-halfW, 0f, judgeLineZ - windowDepth),
-            new Vector3(halfW, 0f, judgeLineZ - windowDepth));
-        Gizmos.DrawLine(
-            new Vector3(-halfW, halfH, judgeLineZ - windowDepth),
-            new Vector3(halfW, halfH, judgeLineZ - windowDepth));
+        Gizmos.DrawLine(new Vector3(-halfW, 0f, jz - windowDepth), new Vector3(halfW, 0f, jz - windowDepth));
+        Gizmos.DrawLine(new Vector3(-halfW, halfH, jz - windowDepth), new Vector3(halfW, halfH, jz - windowDepth));
 
-        // Línea de juicio exacta (amarillo)
         Gizmos.color = Color.yellow;
-        Gizmos.DrawLine(new Vector3(-halfW, 0f, judgeLineZ), new Vector3(halfW, 0f, judgeLineZ));
-        Gizmos.DrawLine(new Vector3(-halfW, halfH, judgeLineZ), new Vector3(halfW, halfH, judgeLineZ));
-        Gizmos.DrawLine(new Vector3(-halfW, 0f, judgeLineZ), new Vector3(-halfW, halfH, judgeLineZ));
-        Gizmos.DrawLine(new Vector3(halfW, 0f, judgeLineZ), new Vector3(halfW, halfH, judgeLineZ));
+        Gizmos.DrawLine(new Vector3(-halfW, 0f, jz), new Vector3(halfW, 0f, jz));
+        Gizmos.DrawLine(new Vector3(-halfW, halfH, jz), new Vector3(halfW, halfH, jz));
+        Gizmos.DrawLine(new Vector3(-halfW, 0f, jz), new Vector3(-halfW, halfH, jz));
+        Gizmos.DrawLine(new Vector3(halfW, 0f, jz), new Vector3(halfW, halfH, jz));
 
 #if UNITY_EDITOR
         UnityEditor.Handles.color = Color.yellow;
-        UnityEditor.Handles.Label(
-            new Vector3(halfW + 0.3f, 0f, judgeLineZ), "JUDGE");
+        UnityEditor.Handles.Label(new Vector3(halfW + 0.3f, 0f, jz), "JUDGE");
 
         UnityEditor.Handles.color = Color.green;
         UnityEditor.Handles.Label(
-            new Vector3(halfW + 0.3f, 0f, judgeLineZ - windowDepth),
+            new Vector3(halfW + 0.3f, 0f, jz - windowDepth),
             $"PRESS HERE -{judgeWindowSeconds * 1000f:F0}ms");
 #endif
     }

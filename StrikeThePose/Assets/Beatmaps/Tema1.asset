@@ -349,12 +349,3 @@ MonoBehaviour:
   - beat: 444
     requiredPose: 2
     holePositionX: -999
-  - beat: 448
-    requiredPose: 4
-    holePositionX: -999
-  - beat: 452
-    requiredPose: 3
-    holePositionX: -999
-  - beat: 456
-    requiredPose: 4
-    holePositionX: -999
