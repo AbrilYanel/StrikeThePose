@@ -46,8 +46,8 @@ public class UIManager : MonoBehaviour
 
     [SerializeField] private ObstacleSpawner obstacleSpawner;
 
-    private static readonly string[] HitMessages = { "PERFECT!", "NICE!", "GREAT!" };
-    private static readonly string[] MissMessages = { "MISS", "TOO LATE", "WRONG POSE", "NOPE" };
+    private static readonly string[] HitMessages = { "PERFECTO!", "BIEN!", "GENIAL!" };
+    private static readonly string[] MissMessages = { "MISS", "TARDE", "INCORRECTO", "NOPE" };
 
     private Coroutine _feedbackCoroutine;
     private Coroutine _tutorialHintCoroutine;
@@ -78,7 +78,7 @@ public class UIManager : MonoBehaviour
         if (feedbackText != null)
             feedbackText.gameObject.SetActive(false);
 
-        // ✅ Ocultar hint de tutorial al inicio
+       
         if (tutorialHintText != null)
             tutorialHintText.gameObject.SetActive(false);
         if (tutorialHintBackground != null)
@@ -137,7 +137,7 @@ public class UIManager : MonoBehaviour
             _ => Color.white
         };
 
-        tutorialHintText.text = $"Presioná <b><size=150%>{keyName}</size></b>\n{poseName}";
+        tutorialHintText.text = $"Presioná <b><size=150%>{keyName}</size></b>";
         tutorialHintText.color = poseColor;
         tutorialHintText.gameObject.SetActive(true);
 

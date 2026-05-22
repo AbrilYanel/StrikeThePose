@@ -11,47 +11,49 @@ public enum PoseType
 
 public class PoseController : MonoBehaviour
 {
-    [Header("Animator (opcional)")]
+    [Header("Animator")]
     [SerializeField] private Animator animator;
-    [SerializeField] private string animatorPoseParam = "PoseIndex";
-
-    [Header("Sprites (opcional)")]
-    [SerializeField] private SpriteRenderer spriteRenderer;
-    [SerializeField] private Sprite[] poseSprites;
 
     public PoseType CurrentPose { get; private set; } = PoseType.Idle;
-
     public float LastInputTime { get; private set; } = -999f;
     public PoseType LastInputPose { get; private set; } = PoseType.Idle;
 
+    private void Start()
+    {
+        if (animator != null)
+            animator.applyRootMotion = false;
+    }
+    private void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.W))
+            SetPose(PoseType.PoseA);
+        else if (Input.GetKeyDown(KeyCode.A))
+            SetPose(PoseType.PoseB);
+        else if (Input.GetKeyDown(KeyCode.S))
+            SetPose(PoseType.PoseC);
+        else if (Input.GetKeyDown(KeyCode.D))
+            SetPose(PoseType.PoseD);
+    }
+
     public void SetPose(PoseType pose)
     {
-        if (CurrentPose == pose) return;
-
         CurrentPose = pose;
+        LastInputPose = pose;
+        LastInputTime = Time.time;
 
-        if (pose != PoseType.Idle)
+        if (animator != null)
         {
-            LastInputTime = Time.time;
-            LastInputPose = pose;
+            // Resetear todos los triggers para evitar acumulación
+            animator.ResetTrigger("PoseA");
+            animator.ResetTrigger("PoseB");
+            animator.ResetTrigger("PoseC");
+            animator.ResetTrigger("PoseD");
+
+            // Activar solo el trigger correspondiente
+            animator.SetTrigger(pose.ToString());
         }
 
-        ApplyToAnimator(pose);
-        ApplyToSprite(pose);
-    }
-
-    private void ApplyToAnimator(PoseType pose)
-    {
-        if (animator == null) return;
-        animator.SetInteger(animatorPoseParam, (int)pose);
-    }
-
-    private void ApplyToSprite(PoseType pose)
-    {
-        if (spriteRenderer == null || poseSprites == null) return;
-        int index = (int)pose;
-        if (index < poseSprites.Length && poseSprites[index] != null)
-            spriteRenderer.sprite = poseSprites[index];
+        Debug.Log($"[Player] Pose: {pose} en t={Time.time:F2}");
     }
 
     public bool MatchesPose(PoseType required)
