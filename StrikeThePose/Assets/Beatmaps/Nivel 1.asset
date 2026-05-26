@@ -1,0 +1,129 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 57a5892b79b89864885225e5e72599c4, type: 3}
+  m_Name: Nivel 1
+  m_EditorClassIdentifier: 
+  song: {fileID: 8300000, guid: 4096864dd5ff77c469afdf99e229832a, type: 3}
+  bpm: 120
+  startOffsetSeconds: 3
+  events:
+  - beat: 7
+    requiredPose: 1
+    holePositionX: -999
+  - beat: 13
+    requiredPose: 3
+    holePositionX: -999
+  - beat: 15
+    requiredPose: 1
+    holePositionX: -999
+  - beat: 21
+    requiredPose: 2
+    holePositionX: -999
+  - beat: 27
+    requiredPose: 3
+    holePositionX: -999
+  - beat: 33
+    requiredPose: 4
+    holePositionX: -999
+  - beat: 39
+    requiredPose: 1
+    holePositionX: -999
+  - beat: 45
+    requiredPose: 3
+    holePositionX: -999
+  - beat: 51
+    requiredPose: 2
+    holePositionX: -999
+  - beat: 55
+    requiredPose: 1
+    holePositionX: -999
+  - beat: 59
+    requiredPose: 4
+    holePositionX: -999
+  - beat: 63
+    requiredPose: 2
+    holePositionX: -999
+  - beat: 67
+    requiredPose: 3
+    holePositionX: -999
+  - beat: 71
+    requiredPose: 1
+    holePositionX: -999
+  - beat: 75
+    requiredPose: 1
+    holePositionX: -999
+  - beat: 81
+    requiredPose: 3
+    holePositionX: -999
+  - beat: 87
+    requiredPose: 2
+    holePositionX: -999
+  - beat: 93
+    requiredPose: 4
+    holePositionX: -999
+  - beat: 99
+    requiredPose: 1
+    holePositionX: -999
+  - beat: 105
+    requiredPose: 5
+    holePositionX: -999
+  - beat: 111
+    requiredPose: 1
+    holePositionX: -999
+  - beat: 115
+    requiredPose: 6
+    holePositionX: -999
+  - beat: 120
+    requiredPose: 1
+    holePositionX: -999
+  - beat: 125
+    requiredPose: 3
+    holePositionX: -999
+  - beat: 130
+    requiredPose: 7
+    holePositionX: -999
+  - beat: 135
+    requiredPose: 3
+    holePositionX: -999
+  - beat: 140
+    requiredPose: 8
+    holePositionX: -999
+  - beat: 145
+    requiredPose: 4
+    holePositionX: -999
+  - beat: 150
+    requiredPose: 1
+    holePositionX: -999
+  - beat: 155
+    requiredPose: 1
+    holePositionX: -999
+  - beat: 159
+    requiredPose: 6
+    holePositionX: -999
+  - beat: 163
+    requiredPose: 3
+    holePositionX: -999
+  - beat: 167
+    requiredPose: 5
+    holePositionX: -999
+  - beat: 171
+    requiredPose: 3
+    holePositionX: -999
+  - beat: 175
+    requiredPose: 7
+    holePositionX: -999
+  - beat: 179
+    requiredPose: 1
+    holePositionX: -999
+  - beat: 183
+    requiredPose: 3
+    holePositionX: -999

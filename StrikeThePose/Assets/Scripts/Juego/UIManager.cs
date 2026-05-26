@@ -39,21 +39,10 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Button tutorialStartButton;
 
     [Header("Tutorial en gameplay")]
-    [Tooltip("Texto grande en el canvas principal que muestra la tecla/pose del próximo obstáculo")]
+    [Tooltip("Texto grande que muestra la tecla/pose del próximo obstáculo")]
     [SerializeField] private TextMeshProUGUI tutorialHintText;
-    [Tooltip("Imagen de fondo opcional detrás del texto de tutorial")]
+    [Tooltip("Fondo opcional detrás del texto de tutorial")]
     [SerializeField] private GameObject tutorialHintBackground;
-
-    [SerializeField] private ObstacleSpawner obstacleSpawner;
-
-    private static readonly string[] HitMessages = { "PERFECTO!", "BIEN!", "GENIAL!" };
-    private static readonly string[] MissMessages = { "MISS", "TARDE", "INCORRECTO", "NOPE" };
-
-    private Coroutine _feedbackCoroutine;
-    private Coroutine _tutorialHintCoroutine;
-
-    public bool IsTutorialHintActive { get; private set; } = false;
-
 
     [Header("Panel de pausa")]
     [SerializeField] private GameObject pausePanel;
@@ -63,10 +52,21 @@ public class UIManager : MonoBehaviour
     [SerializeField] private string mainMenuSceneName = "MainMenu";
 
     [Header("Referencias")]
+    [SerializeField] private ObstacleSpawner obstacleSpawner;
     [SerializeField] private AudioSource musicSource;
+
+    // ── Mensajes de feedback ──────────────────────────────────────────────────
+    private static readonly string[] HitMessages = { "PERFECTO!", "BIEN!", "GENIAL!" };
+    private static readonly string[] MissMessages = { "MISS", "TARDE", "INCORRECTO", "NOPE" };
+
+    private Coroutine _feedbackCoroutine;
+
+    public bool IsTutorialHintActive { get; private set; } = false;
 
     private bool _isPaused = false;
     private bool _gameStarted = false;
+
+    // ── Lifecycle ─────────────────────────────────────────────────────────────
 
     private void Start()
     {
@@ -77,7 +77,6 @@ public class UIManager : MonoBehaviour
         winRetryButton?.onClick.AddListener(RetryLevel);
         loseRetryButton?.onClick.AddListener(RetryLevel);
         tutorialStartButton?.onClick.AddListener(HideTutorialPanel);
-
         resumeButton?.onClick.AddListener(ResumeGame);
         restartButton?.onClick.AddListener(RetryLevel);
         menuButton?.onClick.AddListener(GoToMainMenu);
@@ -97,7 +96,6 @@ public class UIManager : MonoBehaviour
         if (feedbackText != null)
             feedbackText.gameObject.SetActive(false);
 
-       
         if (tutorialHintText != null)
             tutorialHintText.gameObject.SetActive(false);
         if (tutorialHintBackground != null)
@@ -108,19 +106,14 @@ public class UIManager : MonoBehaviour
     {
         if (GameManager.Instance == null) return;
 
-       
         if (_gameStarted && !GameManager.Instance.IsGameOver && !GameManager.Instance.IsGameWon)
         {
             if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.P))
             {
-                if (_isPaused)
-                    ResumeGame();
-                else
-                    PauseGame();
+                if (_isPaused) ResumeGame(); else PauseGame();
             }
         }
 
-       
         if (_isPaused) return;
 
         if (scoreText != null)
@@ -128,8 +121,7 @@ public class UIManager : MonoBehaviour
 
         if (comboText != null)
             comboText.text = GameManager.Instance.Combo > 1
-                ? $"x{GameManager.Instance.Combo} COMBO"
-                : "";
+                ? $"x{GameManager.Instance.Combo} COMBO" : "";
 
         if (livesText != null)
         {
@@ -139,57 +131,48 @@ public class UIManager : MonoBehaviour
         }
     }
 
+    // ── Pausa ─────────────────────────────────────────────────────────────────
+
     private void PauseGame()
     {
         _isPaused = true;
         Time.timeScale = 0f;
         pausePanel?.SetActive(true);
-
-       
-        if (musicSource != null && musicSource.isPlaying)
-            musicSource.Pause();
+        if (musicSource != null && musicSource.isPlaying) musicSource.Pause();
     }
 
-   
     private void ResumeGame()
     {
         _isPaused = false;
         Time.timeScale = 1f;
         pausePanel?.SetActive(false);
-
-      
-        if (musicSource != null && !musicSource.isPlaying)
-            musicSource.UnPause();
+        if (musicSource != null && !musicSource.isPlaying) musicSource.UnPause();
     }
 
-   
     private void GoToMainMenu()
     {
         Time.timeScale = 1f;
         UnityEngine.SceneManagement.SceneManager.LoadScene(mainMenuSceneName);
     }
 
+    // ── Tutorial hint ─────────────────────────────────────────────────────────
 
     public void ShowTutorialHint(PoseType pose)
     {
         if (tutorialHintText == null) return;
 
-        string keyName = pose switch
+        // Teclas a mostrar
+        string keyLabel = pose switch
         {
             PoseType.PoseA => "W",
             PoseType.PoseB => "A",
             PoseType.PoseC => "S",
             PoseType.PoseD => "D",
-            _ => "?"
-        };
-
-        string poseName = pose switch
-        {
-            PoseType.PoseA => "Pose A",
-            PoseType.PoseB => "Pose B",
-            PoseType.PoseC => "Pose C",
-            PoseType.PoseD => "Pose D",
-            _ => "Pose"
+            PoseType.PoseAB => "W + A",
+            PoseType.PoseAD => "W + D",
+            PoseType.PoseBC => "A + S",
+            PoseType.PoseCD => "S + D",
+            _ => "?",
         };
 
         Color poseColor = pose switch
@@ -198,20 +181,22 @@ public class UIManager : MonoBehaviour
             PoseType.PoseB => new Color(1f, 0.4f, 0.2f),
             PoseType.PoseC => new Color(0.3f, 0.9f, 0.3f),
             PoseType.PoseD => new Color(0.9f, 0.2f, 0.8f),
-            _ => Color.white
+            PoseType.PoseAB => new Color(0.6f, 0.3f, 1f),
+            PoseType.PoseAD => new Color(1f, 0.9f, 0.1f),
+            PoseType.PoseBC => new Color(0.1f, 0.9f, 0.9f),
+            PoseType.PoseCD => new Color(1f, 0.5f, 0.7f),
+            _ => Color.white,
         };
 
-        tutorialHintText.text = $"Presioná <b><size=150%>{keyName}</size></b>";
+        tutorialHintText.text = $"Presioná <b><size=150%>{keyLabel}</size></b>";
         tutorialHintText.color = poseColor;
         tutorialHintText.gameObject.SetActive(true);
 
         if (tutorialHintBackground != null)
             tutorialHintBackground.SetActive(true);
 
-        
         IsTutorialHintActive = true;
     }
-
 
     public void HideTutorialHint()
     {
@@ -220,9 +205,10 @@ public class UIManager : MonoBehaviour
         if (tutorialHintBackground != null)
             tutorialHintBackground.SetActive(false);
 
-       
         IsTutorialHintActive = false;
     }
+
+    // ── Feedback de hit/miss ──────────────────────────────────────────────────
 
     public void ShowHitFeedback(bool success)
     {
@@ -240,28 +226,22 @@ public class UIManager : MonoBehaviour
     private IEnumerator FeedbackRoutine(bool success)
     {
         feedbackText.gameObject.SetActive(true);
-
-        if (success)
-        {
-            feedbackText.text = HitMessages[Random.Range(0, HitMessages.Length)];
-            feedbackText.color = new Color(0.2f, 1f, 0.4f);
-        }
-        else
-        {
-            feedbackText.text = MissMessages[Random.Range(0, MissMessages.Length)];
-            feedbackText.color = new Color(1f, 0.25f, 0.25f);
-        }
+        feedbackText.text = success
+            ? HitMessages[Random.Range(0, HitMessages.Length)]
+            : MissMessages[Random.Range(0, MissMessages.Length)];
+        feedbackText.color = success
+            ? new Color(0.2f, 1f, 0.4f)
+            : new Color(1f, 0.25f, 0.25f);
 
         float elapsed = 0f;
-        Vector3 startScale = Vector3.one * 1.3f;
-        Vector3 endScale = Vector3.one;
-        feedbackText.transform.localScale = startScale;
+        Vector3 startSc = Vector3.one * 1.3f;
+        feedbackText.transform.localScale = startSc;
 
         while (elapsed < feedbackDuration)
         {
             elapsed += Time.deltaTime;
             float t = elapsed / feedbackDuration;
-            feedbackText.transform.localScale = Vector3.Lerp(startScale, endScale, t);
+            feedbackText.transform.localScale = Vector3.Lerp(startSc, Vector3.one, t);
             Color c = feedbackText.color;
             feedbackText.color = new Color(c.r, c.g, c.b, Mathf.Lerp(1f, 0f, t));
             yield return null;
@@ -269,6 +249,8 @@ public class UIManager : MonoBehaviour
 
         feedbackText.gameObject.SetActive(false);
     }
+
+    // ── Paneles de resultado ──────────────────────────────────────────────────
 
     private void ShowWinPanel(int score, int maxCombo)
     {
@@ -280,8 +262,7 @@ public class UIManager : MonoBehaviour
     private void ShowLosePanel()
     {
         losePanel?.SetActive(true);
-        if (loseMissesText != null)
-            loseMissesText.text = "Te quedaste sin vidas";
+        if (loseMissesText != null) loseMissesText.text = "Te quedaste sin vidas";
     }
 
     private void HideTutorialPanel()

@@ -52,10 +52,10 @@ public class ObstacleSpawner : MonoBehaviour
         _pendingEvents = new List<BeatEvent>(beatMap.events);
         _pendingEvents.Sort((a, b) => a.beat.CompareTo(b.beat));
 
-        
+
     }
 
-   
+
     public void StartGame()
     {
         if (_running) return;
@@ -86,7 +86,7 @@ public class ObstacleSpawner : MonoBehaviour
                 yield break;
             }
 
-            
+
             float elapsed = Time.time - _gameStartRealTime;
 
             float audioTime = (musicSource != null && musicSource.isPlaying)
@@ -106,8 +106,10 @@ public class ObstacleSpawner : MonoBehaviour
             yield return null;
         }
 
-        // Esperar a que el último obstáculo pase antes de declarar victoria
-        yield return new WaitForSeconds(TravelTime + 1f);
+        // Esperar a que la música termine Y no queden obstáculos en escena
+        yield return new WaitUntil(() =>
+            (musicSource == null || !musicSource.isPlaying) &&
+            FindObjectsByType<Obstacle>(FindObjectsSortMode.None).Length == 0);
 
         _running = false;
         Debug.Log("[ObstacleSpawner] Canción terminada.");
