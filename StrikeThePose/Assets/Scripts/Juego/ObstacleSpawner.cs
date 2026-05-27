@@ -57,7 +57,7 @@ public class ObstacleSpawner : MonoBehaviour
     private float _currentLateWindow = 0.3f;
     private bool _isHardDifficulty = false;
 
-    // Listas separadas para evitar que el desfase físico de los obstáculos (TravelTime) choque con el tiempo real del Área Bonus
+    // Listas separadas para evitar desfase físico
     private List<BeatEvent> _obstacleEvents = new List<BeatEvent>();
     private List<BeatEvent> _bonusEvents = new List<BeatEvent>();
 
@@ -142,7 +142,6 @@ public class ObstacleSpawner : MonoBehaviour
         _obstacleEvents.Clear();
         _bonusEvents.Clear();
 
-        // Clasificamos los eventos: los de Área Bonus ocurren en tiempo real; los obstáculos físicos necesitan el desfase TravelTime
         foreach (var ev in beatMap.events)
         {
             if (ev.isBonusAreaStart || ev.isBonusAreaEnd)
@@ -269,8 +268,15 @@ public class ObstacleSpawner : MonoBehaviour
         {
             bool isTutorial = _spawnedCount < tutorialObstacleCount;
 
-            // Decidir de forma aleatoria si este obstáculo será FAKE (solo ocurre en dificultad DIFÍCIL)
+            // Decidir si es FAKE (sólo en difícil)
             bool isFake = _isHardDifficulty && (Random.value < fakeObstacleChance);
+
+            // Determinamos si es una nota larga directamente desde la información del Beatmap
+            float holdDuration = 0f;
+            if (!isTutorial && !isFake && ev.isHoldNote)
+            {
+                holdDuration = ev.holdDuration;
+            }
 
             obstacle.Initialize(
                 ev.requiredPose,
@@ -280,7 +286,8 @@ public class ObstacleSpawner : MonoBehaviour
                 _currentEarlyWindow,
                 _currentLateWindow,
                 isTutorial,
-                isFake
+                isFake,
+                holdDuration
             );
         }
 

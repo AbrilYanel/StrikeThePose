@@ -20,13 +20,13 @@ public static class Level1Beatmap
         bm.events.AddRange(new BeatEvent[]
         {
             // ── INTRO
-            new BeatEvent { beat =   7f, requiredPose = PoseType.PoseA,  holePositionX = -999f },
+            new BeatEvent { beat =   7f, requiredPose = PoseType.PoseA,  holePositionX = -999f, isHoldNote = true, holdDuration = 2.0f }, // Nota larga (Suficiente espacio hasta beat 13)
             new BeatEvent { beat =  13f, requiredPose = PoseType.PoseC,  holePositionX = -999f },
  
-            // ── VERSO 1
-            new BeatEvent { beat =  15f, requiredPose = PoseType.PoseA,  holePositionX = -999f },
+            // ── VERSO 1 (Notas muy espaciadas de 12 beats, ideales para notas sostenidas sin colisión)
+            new BeatEvent { beat =  15f, requiredPose = PoseType.PoseA,  holePositionX = -999f, isHoldNote = true, holdDuration = 2.5f }, // Nota larga
             new BeatEvent { beat =  27f, requiredPose = PoseType.PoseC,  holePositionX = -999f },
-            new BeatEvent { beat =  39f, requiredPose = PoseType.PoseA,  holePositionX = -999f },
+            new BeatEvent { beat =  39f, requiredPose = PoseType.PoseA,  holePositionX = -999f, isHoldNote = true, holdDuration = 2.5f }, // Nota larga
             new BeatEvent { beat =  51f, requiredPose = PoseType.PoseB,  holePositionX = -999f },
  
             // ── PRE-CORO
@@ -35,22 +35,22 @@ public static class Level1Beatmap
             new BeatEvent { beat =  71f, requiredPose = PoseType.PoseA,  holePositionX = -999f },
  
             // ── CORO 1
-            new BeatEvent { beat =  75f, requiredPose = PoseType.PoseA,  holePositionX = -999f },
+            new BeatEvent { beat =  75f, requiredPose = PoseType.PoseA,  holePositionX = -999f, isHoldNote = true, holdDuration = 2.0f }, // Nota larga
             new BeatEvent { beat =  87f, requiredPose = PoseType.PoseB,  holePositionX = -999f },
             new BeatEvent { beat =  99f, requiredPose = PoseType.PoseA,  holePositionX = -999f },
             new BeatEvent { beat = 111f, requiredPose = PoseType.PoseC,  holePositionX = -999f },
  
-            // ── PUENTE: ÁREA BONUS (Del beat 115 al 130, ¡frenesí libre!)
+            // ── PUENTE: ÁREA BONUS (Del beat 115 al 130)
             new BeatEvent { beat = 115f, isBonusAreaStart = true },
             new BeatEvent { beat = 130f, isBonusAreaEnd = true },
-            new BeatEvent { beat = 135f, requiredPose = PoseType.PoseD,  holePositionX = -999f },
+            new BeatEvent { beat = 135f, requiredPose = PoseType.PoseD,  holePositionX = -999f, isHoldNote = true, holdDuration = 2.0f }, // Nota larga
             new BeatEvent { beat = 145f, requiredPose = PoseType.PoseB,  holePositionX = -999f },
  
             // ── OUTRO
             new BeatEvent { beat = 155f, requiredPose = PoseType.PoseA,  holePositionX = -999f },
             new BeatEvent { beat = 163f, requiredPose = PoseType.PoseC,  holePositionX = -999f },
             new BeatEvent { beat = 171f, requiredPose = PoseType.PoseD,  holePositionX = -999f },
-            new BeatEvent { beat = 179f, requiredPose = PoseType.PoseA,  holePositionX = -999f }
+            new BeatEvent { beat = 179f, requiredPose = PoseType.PoseA,  holePositionX = -999f, isHoldNote = true, holdDuration = 3.0f }  // Cierre dramático con nota larga
         });
 
         EditorUtility.SetDirty(bm);
@@ -73,43 +73,43 @@ public static class Level1Beatmap
         bm.events.AddRange(new BeatEvent[]
         {
             // ── INTRO
-            new BeatEvent { beat =   7f, requiredPose = PoseType.PoseA,  holePositionX = -999f },
+            new BeatEvent { beat =   7f, requiredPose = PoseType.PoseA,  holePositionX = -999f, isHoldNote = true, holdDuration = 2.0f }, // Nota larga (Espacio amplio hasta beat 13)
             new BeatEvent { beat =  13f, requiredPose = PoseType.PoseC,  holePositionX = -999f },
  
-            // ── VERSO 1 — cada 6 beats, solo simples
-            new BeatEvent { beat =  15f, requiredPose = PoseType.PoseA,  holePositionX = -999f },
+            // ── VERSO 1 (Espaciado de 6 beats = 3.0 segundos, excelente para notas sostenidas de 1.5 segundos)
+            new BeatEvent { beat =  15f, requiredPose = PoseType.PoseA,  holePositionX = -999f, isHoldNote = true, holdDuration = 1.5f }, // Nota larga (Termina antes del beat 21)
             new BeatEvent { beat =  21f, requiredPose = PoseType.PoseB,  holePositionX = -999f },
-            new BeatEvent { beat =  27f, requiredPose = PoseType.PoseC,  holePositionX = -999f },
+            new BeatEvent { beat =  27f, requiredPose = PoseType.PoseC,  holePositionX = -999f, isHoldNote = true, holdDuration = 1.5f }, // Nota larga (Termina antes del beat 33)
             new BeatEvent { beat =  33f, requiredPose = PoseType.PoseD,  holePositionX = -999f },
             new BeatEvent { beat =  39f, requiredPose = PoseType.PoseA,  holePositionX = -999f },
             new BeatEvent { beat =  45f, requiredPose = PoseType.PoseC,  holePositionX = -999f },
             new BeatEvent { beat =  51f, requiredPose = PoseType.PoseB,  holePositionX = -999f },
  
-            // ── PRE-CORO — cada 4 beats, solo simples
+            // ── PRE-CORO (Construcción de tensión, ráfagas cortas)
             new BeatEvent { beat =  55f, requiredPose = PoseType.PoseA,  holePositionX = -999f },
             new BeatEvent { beat =  59f, requiredPose = PoseType.PoseD,  holePositionX = -999f },
             new BeatEvent { beat =  63f, requiredPose = PoseType.PoseB,  holePositionX = -999f },
             new BeatEvent { beat =  67f, requiredPose = PoseType.PoseC,  holePositionX = -999f },
             new BeatEvent { beat =  71f, requiredPose = PoseType.PoseA,  holePositionX = -999f },
  
-            // ── CORO 1 — cada 6 beats, 4 simples luego combo
-            new BeatEvent { beat =  75f, requiredPose = PoseType.PoseA,  holePositionX = -999f },
+            // ── CORO 1 (Espaciado de 6 beats)
+            new BeatEvent { beat =  75f, requiredPose = PoseType.PoseA,  holePositionX = -999f, isHoldNote = true, holdDuration = 2.0f }, // Nota larga (Termina en beat 79)
             new BeatEvent { beat =  81f, requiredPose = PoseType.PoseC,  holePositionX = -999f },
-            new BeatEvent { beat =  87f, requiredPose = PoseType.PoseB,  holePositionX = -999f },
+            new BeatEvent { beat =  87f, requiredPose = PoseType.PoseB,  holePositionX = -999f, isHoldNote = true, holdDuration = 2.0f }, // Nota larga (Termina en beat 91)
             new BeatEvent { beat =  93f, requiredPose = PoseType.PoseD,  holePositionX = -999f },
             new BeatEvent { beat =  99f, requiredPose = PoseType.PoseA,  holePositionX = -999f },
             new BeatEvent { beat = 105f, requiredPose = PoseType.PoseAB, holePositionX = -999f },
             new BeatEvent { beat = 111f, requiredPose = PoseType.PoseBC, holePositionX = -999f },
  
-            // ── PUENTE: ÁREA BONUS (Del beat 115 al 130, ¡frenesí libre!)
+            // ── PUENTE: ÁREA BONUS (Del beat 115 al 130)
             new BeatEvent { beat = 115f, isBonusAreaStart = true },
             new BeatEvent { beat = 130f, isBonusAreaEnd = true },
-            new BeatEvent { beat = 135f, requiredPose = PoseType.PoseD,  holePositionX = -999f },
+            new BeatEvent { beat = 135f, requiredPose = PoseType.PoseD,  holePositionX = -999f, isHoldNote = true, holdDuration = 1.5f }, // Nota larga
             new BeatEvent { beat = 140f, requiredPose = PoseType.PoseAD, holePositionX = -999f },
             new BeatEvent { beat = 145f, requiredPose = PoseType.PoseB,  holePositionX = -999f },
             new BeatEvent { beat = 150f, requiredPose = PoseType.PoseA,  holePositionX = -999f },
  
-            // ── OUTRO — cada 4 beats, mezcla de combos
+            // ── OUTRO
             new BeatEvent { beat = 155f, requiredPose = PoseType.PoseA,  holePositionX = -999f },
             new BeatEvent { beat = 159f, requiredPose = PoseType.PoseAD, holePositionX = -999f },
             new BeatEvent { beat = 163f, requiredPose = PoseType.PoseC,  holePositionX = -999f },
@@ -117,7 +117,7 @@ public static class Level1Beatmap
             new BeatEvent { beat = 171f, requiredPose = PoseType.PoseD,  holePositionX = -999f },
             new BeatEvent { beat = 175f, requiredPose = PoseType.PoseAB, holePositionX = -999f },
             new BeatEvent { beat = 179f, requiredPose = PoseType.PoseA,  holePositionX = -999f },
-            new BeatEvent { beat = 183f, requiredPose = PoseType.PoseC,  holePositionX = -999f }
+            new BeatEvent { beat = 183f, requiredPose = PoseType.PoseC,  holePositionX = -999f, isHoldNote = true, holdDuration = 3.0f }  // Final sostenido espectacular
         });
 
         EditorUtility.SetDirty(bm);
@@ -140,24 +140,24 @@ public static class Level1Beatmap
         bm.events.AddRange(new BeatEvent[]
         {
             // ── INTRO
-            new BeatEvent { beat =   4f, requiredPose = PoseType.PoseA,  holePositionX = -999f },
+            new BeatEvent { beat =   4f, requiredPose = PoseType.PoseA,  holePositionX = -999f, isHoldNote = true, holdDuration = 1.0f }, // Nota larga corta
             new BeatEvent { beat =   7f, requiredPose = PoseType.PoseC,  holePositionX = -999f },
             new BeatEvent { beat =  10f, requiredPose = PoseType.PoseB,  holePositionX = -999f },
             new BeatEvent { beat =  13f, requiredPose = PoseType.PoseD,  holePositionX = -999f },
  
-            // ── VERSO 1 — cada 4 beats
-            new BeatEvent { beat =  15f, requiredPose = PoseType.PoseA,  holePositionX = -999f },
+            // ── VERSO 1
+            new BeatEvent { beat =  15f, requiredPose = PoseType.PoseA,  holePositionX = -999f, isHoldNote = true, holdDuration = 1.5f }, // Nota larga rápida
             new BeatEvent { beat =  19f, requiredPose = PoseType.PoseB,  holePositionX = -999f },
             new BeatEvent { beat =  23f, requiredPose = PoseType.PoseC,  holePositionX = -999f },
             new BeatEvent { beat =  27f, requiredPose = PoseType.PoseD,  holePositionX = -999f },
-            new BeatEvent { beat =  31f, requiredPose = PoseType.PoseA,  holePositionX = -999f },
+            new BeatEvent { beat =  31f, requiredPose = PoseType.PoseA,  holePositionX = -999f, isHoldNote = true, holdDuration = 1.5f }, // Nota larga rápida
             new BeatEvent { beat =  35f, requiredPose = PoseType.PoseC,  holePositionX = -999f },
             new BeatEvent { beat =  39f, requiredPose = PoseType.PoseB,  holePositionX = -999f },
             new BeatEvent { beat =  43f, requiredPose = PoseType.PoseAB, holePositionX = -999f },
             new BeatEvent { beat =  47f, requiredPose = PoseType.PoseCD, holePositionX = -999f },
             new BeatEvent { beat =  51f, requiredPose = PoseType.PoseBC, holePositionX = -999f },
  
-            // ── PRE-CORO — cada 2 beats
+            // ── PRE-CORO (Sección frenética de 2 beats, no lleva notas largas para evitar colisiones)
             new BeatEvent { beat =  55f, requiredPose = PoseType.PoseA,  holePositionX = -999f },
             new BeatEvent { beat =  57f, requiredPose = PoseType.PoseD,  holePositionX = -999f },
             new BeatEvent { beat =  59f, requiredPose = PoseType.PoseB,  holePositionX = -999f },
@@ -169,12 +169,12 @@ public static class Level1Beatmap
             new BeatEvent { beat =  71f, requiredPose = PoseType.PoseCD, holePositionX = -999f },
             new BeatEvent { beat =  73f, requiredPose = PoseType.PoseAB, holePositionX = -999f },
  
-            // ── CORO 1 — cada 3 beats
-            new BeatEvent { beat =  75f, requiredPose = PoseType.PoseA,  holePositionX = -999f },
+            // ── CORO 1 (Notas largas entre ráfagas rápidas)
+            new BeatEvent { beat =  75f, requiredPose = PoseType.PoseA,  holePositionX = -999f, isHoldNote = true, holdDuration = 1.0f }, // Nota larga de 1s (Termina en beat 77, libre en 78)
             new BeatEvent { beat =  78f, requiredPose = PoseType.PoseAB, holePositionX = -999f },
             new BeatEvent { beat =  81f, requiredPose = PoseType.PoseC,  holePositionX = -999f },
             new BeatEvent { beat =  84f, requiredPose = PoseType.PoseBC, holePositionX = -999f },
-            new BeatEvent { beat =  87f, requiredPose = PoseType.PoseB,  holePositionX = -999f },
+            new BeatEvent { beat =  87f, requiredPose = PoseType.PoseB,  holePositionX = -999f, isHoldNote = true, holdDuration = 1.0f }, // Nota larga de 1s (Termina en beat 89, libre en 90)
             new BeatEvent { beat =  90f, requiredPose = PoseType.PoseCD, holePositionX = -999f },
             new BeatEvent { beat =  93f, requiredPose = PoseType.PoseD,  holePositionX = -999f },
             new BeatEvent { beat =  96f, requiredPose = PoseType.PoseAD, holePositionX = -999f },
@@ -182,19 +182,19 @@ public static class Level1Beatmap
             new BeatEvent { beat = 102f, requiredPose = PoseType.PoseAB, holePositionX = -999f },
             new BeatEvent { beat = 105f, requiredPose = PoseType.PoseBC, holePositionX = -999f },
             new BeatEvent { beat = 108f, requiredPose = PoseType.PoseCD, holePositionX = -999f },
-            new BeatEvent { beat = 111f, requiredPose = PoseType.PoseAD, holePositionX = -999f },
+            new BeatEvent { beat = 111f, requiredPose = PoseType.PoseAD, holePositionX = -999f, isHoldNote = true, holdDuration = 1.0f }, // Nota larga corta antes del bonus
             new BeatEvent { beat = 114f, requiredPose = PoseType.PoseCD, holePositionX = -999f },
  
-            // ── PUENTE: ÁREA BONUS (Del beat 115 al 130, ¡frenesí libre!)
+            // ── PUENTE: ÁREA BONUS (Del beat 115 al 130)
             new BeatEvent { beat = 115f, isBonusAreaStart = true },
             new BeatEvent { beat = 130f, isBonusAreaEnd = true },
-            new BeatEvent { beat = 135f, requiredPose = PoseType.PoseD,  holePositionX = -999f },
+            new BeatEvent { beat = 135f, requiredPose = PoseType.PoseD,  holePositionX = -999f, isHoldNote = true, holdDuration = 1.5f }, // Nota larga
             new BeatEvent { beat = 139f, requiredPose = PoseType.PoseAD, holePositionX = -999f },
             new BeatEvent { beat = 143f, requiredPose = PoseType.PoseBC, holePositionX = -999f },
             new BeatEvent { beat = 147f, requiredPose = PoseType.PoseAB, holePositionX = -999f },
             new BeatEvent { beat = 151f, requiredPose = PoseType.PoseAD, holePositionX = -999f },
  
-            // ── OUTRO — cada 2 beats
+            // ── OUTRO
             new BeatEvent { beat = 155f, requiredPose = PoseType.PoseA,  holePositionX = -999f },
             new BeatEvent { beat = 157f, requiredPose = PoseType.PoseAD, holePositionX = -999f },
             new BeatEvent { beat = 159f, requiredPose = PoseType.PoseC,  holePositionX = -999f },
@@ -209,7 +209,7 @@ public static class Level1Beatmap
             new BeatEvent { beat = 177f, requiredPose = PoseType.PoseBC, holePositionX = -999f },
             new BeatEvent { beat = 179f, requiredPose = PoseType.PoseA,  holePositionX = -999f },
             new BeatEvent { beat = 181f, requiredPose = PoseType.PoseCD, holePositionX = -999f },
-            new BeatEvent { beat = 183f, requiredPose = PoseType.PoseAB, holePositionX = -999f }
+            new BeatEvent { beat = 183f, requiredPose = PoseType.PoseAB, holePositionX = -999f, isHoldNote = true, holdDuration = 3.0f }  // Cierre dramático difícil
         });
 
         EditorUtility.SetDirty(bm);

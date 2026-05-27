@@ -17,5 +17,11 @@ public class BeatEvent
     [Tooltip("¿Termina el área de bonus aquí?")]
     public bool isBonusAreaEnd = false;
 
+    [Header("Nota Sostenida (Hold Note)")]
+    [Tooltip("¿Es este obstáculo una nota larga que debe mantenerse presionada?")]
+    public bool isHoldNote = false;
+    [Tooltip("Duración de la nota sostenida en segundos")]
+    public float holdDuration = 0f;
+
     public bool IsHoleRandom => holePositionX <= -999f;
 }

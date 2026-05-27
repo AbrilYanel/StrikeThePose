@@ -40,8 +40,12 @@ public class Obstacle : MonoBehaviour
     public PoseType RequiredPose { get; private set; }
     public float HolePositionX { get; private set; }
 
-    // Nueva propiedad para marcar si este obstáculo es falso/trampa
+    // Propiedad para marcar si este obstáculo es falso/trampa
     public bool IsFake { get; private set; } = false;
+
+    // ── Notas Largas (Hold Notes) ─────────────────────────────────────────────
+    public bool IsHold { get; private set; } = false;
+    public float HoldDuration { get; private set; } = 0f;
 
     private bool _evaluated = false;
     private bool _ownsHint = false;
@@ -53,6 +57,11 @@ public class Obstacle : MonoBehaviour
     private float _windowStartZ;
     private float _windowEndZ;
 
+    // Estados de notas largas
+    private bool _isHolding = false;
+    private float _holdTimer = 0f;
+    private float _pointsTickTimer = 0f;
+
     public void Initialize(
         PoseType requiredPose,
         float holePosX,
@@ -61,7 +70,8 @@ public class Obstacle : MonoBehaviour
         float earlyWindow,
         float lateWindow,
         bool showTutorial = false,
-        bool isFake = false
+        bool isFake = false,
+        float holdDuration = 0f
     )
     {
         RequiredPose = requiredPose;
@@ -69,21 +79,29 @@ public class Obstacle : MonoBehaviour
         _player = player;
         IsFake = isFake;
 
+        // Notas largas
+        IsHold = holdDuration > 0f;
+        HoldDuration = holdDuration;
+
         // Configuraciones dinámicas de velocidad y juicio
         moveSpeed = speed;
         earlyWindowSeconds = earlyWindow;
         lateWindowSeconds = lateWindow;
 
         _judgeLineZ = player.transform.position.z;
-        _destroyZ = _judgeLineZ + destroyOffset;
+
+        // Si es una nota larga, aumentamos la distancia de destrucción según su longitud física
+        float physicalLength = IsHold ? (HoldDuration * moveSpeed) : 0f;
+        _destroyZ = _judgeLineZ + destroyOffset + physicalLength;
+
         _windowStartZ = _judgeLineZ - (earlyWindowSeconds * moveSpeed);
         _windowEndZ = _judgeLineZ + (lateWindowSeconds * moveSpeed);
 
         BuildWall();
         ApplyColor();
 
-        // En obstáculos fake no mostramos el texto de tutorial de ayuda
-        if (showTutorial && !IsFake && UIManager.Instance != null && !UIManager.Instance.IsTutorialHintActive)
+        // En obstáculos fake o notas largas complejas no mostramos tutorial de ayuda directo
+        if (showTutorial && !IsFake && !IsHold && UIManager.Instance != null && !UIManager.Instance.IsTutorialHintActive)
         {
             _ownsHint = true;
             UIManager.Instance.ShowTutorialHint(RequiredPose);
@@ -95,8 +113,42 @@ public class Obstacle : MonoBehaviour
         transform.position += Vector3.forward * moveSpeed * Time.deltaTime;
         float z = transform.position.z;
 
+        // ── 1. LÓGICA DE NOTA LARGA ACTIVA ──
+        if (_isHolding)
+        {
+            _holdTimer += Time.deltaTime;
+
+            // Comprobar si el jugador sigue en la pose requerida y dentro del hueco
+            bool holdingCorrectPose = _player.CurrentPose == RequiredPose;
+            bool insideHole = IsPlayerInHole(_player.transform.position.x);
+
+            if (!holdingCorrectPose || !insideHole)
+            {
+                // El jugador soltó el botón antes o se movió del carril -> FALLO INMEDIATO
+                _isHolding = false;
+                EvaluateResult(false);
+                return;
+            }
+
+            // Otorga ráfagas de puntos (ticks) cada 0.1 segundos por mantener con éxito
+            _pointsTickTimer += Time.deltaTime;
+            if (_pointsTickTimer >= 0.1f)
+            {
+                _pointsTickTimer = 0f;
+                GameManager.Instance?.AddBonusPoints(5); // +5 puntos por cada tick
+            }
+
+            // Si se completó el tiempo requerido -> ÉXITO COMPLETO!
+            if (_holdTimer >= HoldDuration)
+            {
+                _isHolding = false;
+                EvaluateResult(true);
+            }
+            return;
+        }
+
         // Mostrar hint si todavía no se tomó
-        if (!_ownsHint && !_evaluated && !IsFake)
+        if (!_ownsHint && !_evaluated && !IsFake && !IsHold)
         {
             if (UIManager.Instance != null && !UIManager.Instance.IsTutorialHintActive)
             {
@@ -104,35 +156,53 @@ public class Obstacle : MonoBehaviour
             }
         }
 
-        // Dentro de la ventana de juicio
+        // ── 2. DETECCIÓN DE ENTRADA A LA VENTANA DE JUICIO ──
         if (!_evaluated && z >= _windowStartZ && z <= _windowEndZ)
         {
             _enteredWindow = true;
 
             if (IsFake)
             {
-                // Si el obstáculo es FAKE, presionar CUALQUIER tecla de juego activa un fallo inmediato!
+                // Si el obstáculo es FAKE, presionar cualquier tecla activa un fallo inmediato!
                 if (_player.CurrentPose != PoseType.Idle)
                 {
-                    EvaluateResult(false); // Falló por presionar una tecla
+                    EvaluateResult(false);
                 }
             }
             else
             {
-                // Comportamiento normal para obstáculos reales
+                // Comportamiento normal para obstáculos reales (y notas largas al iniciar)
                 float timeSinceInput = Time.time - _player.LastInputTime;
                 bool recentInput = timeSinceInput <= Time.deltaTime * 2f;
 
                 if (recentInput && _player.LastInputPose == RequiredPose)
                 {
                     bool posOk = IsPlayerInHole(_player.transform.position.x);
-                    EvaluateResult(posOk);
+                    if (posOk)
+                    {
+                        if (IsHold)
+                        {
+                            // Iniciar estado de retención (Holding)
+                            _isHolding = true;
+                            _holdTimer = 0f;
+                            _pointsTickTimer = 0f;
+                            Debug.Log("[Obstacle] ¡Nota larga iniciada! Mantén presionado...");
+                        }
+                        else
+                        {
+                            EvaluateResult(true);
+                        }
+                    }
+                    else
+                    {
+                        EvaluateResult(false);
+                    }
                 }
             }
         }
 
         // Salió de la ventana sin que se haya evaluado
-        if (!_evaluated && _enteredWindow && z > _windowEndZ)
+        if (!_evaluated && !_isHolding && _enteredWindow && z > _windowEndZ)
         {
             if (IsFake)
             {
@@ -141,7 +211,7 @@ public class Obstacle : MonoBehaviour
             }
             else
             {
-                // Si era un obstáculo real y no lo presionó -> Fallo
+                // Si era un obstáculo real/long y no se presionó en su ventana de inicio -> Fallo
                 EvaluateResult(false);
             }
         }
@@ -169,7 +239,7 @@ public class Obstacle : MonoBehaviour
             Destroy(gameObject);
         }
 
-        Debug.Log($"[Obstacle] {(success ? "ACIERTO" : "FALLO")} | Pose: {RequiredPose} | ¿Era Fake?: {IsFake}");
+        Debug.Log($"[Obstacle] {(success ? "ACIERTO" : "FALLO")} | Pose: {RequiredPose} | ¿Era Hold?: {IsHold}");
     }
 
     private void ReleaseHint()
@@ -200,22 +270,30 @@ public class Obstacle : MonoBehaviour
         float leftWidth = leftEnd - leftOrigin;
         float rightWidth = rightEnd - rightStart;
 
+        // Si es una nota larga, su grosor físico en Z representa el largo que debe sostenerse
+        float currentDepth = wallDepth;
+        if (IsHold)
+        {
+            currentDepth = HoldDuration * moveSpeed;
+        }
+
         if (wallLeft != null)
         {
-            wallLeft.localScale = new Vector3(Mathf.Max(leftWidth, 0f), wallHeight, wallDepth);
-            wallLeft.localPosition = new Vector3(leftOrigin + leftWidth / 2f, 2.2f, 0f);
+            wallLeft.localScale = new Vector3(Mathf.Max(leftWidth, 0f), wallHeight, currentDepth);
+            // Desplazamos los muros hacia atrás (-Z) para que su frente coincida exactamente con el pivot local (Z = 0)
+            wallLeft.localPosition = new Vector3(leftOrigin + leftWidth / 2f, 2.2f, -currentDepth / 2f);
         }
 
         if (wallRight != null)
         {
-            wallRight.localScale = new Vector3(Mathf.Max(rightWidth, 0f), wallHeight, wallDepth);
-            wallRight.localPosition = new Vector3(rightStart + rightWidth / 2f, 2.2f, 0f);
+            wallRight.localScale = new Vector3(Mathf.Max(rightWidth, 0f), wallHeight, currentDepth);
+            wallRight.localPosition = new Vector3(rightStart + rightWidth / 2f, 2.2f, -currentDepth / 2f);
         }
 
         if (holeZoneTrigger != null)
         {
-            holeZoneTrigger.center = new Vector3(HolePositionX, 2.2f, 0f);
-            holeZoneTrigger.size = new Vector3(holeWidth, wallHeight, wallDepth * 2f);
+            holeZoneTrigger.center = new Vector3(HolePositionX, 2.2f, -currentDepth / 2f);
+            holeZoneTrigger.size = new Vector3(holeWidth, wallHeight, currentDepth);
         }
     }
 
@@ -236,8 +314,12 @@ public class Obstacle : MonoBehaviour
 
         if (IsFake)
         {
-            // Apagamos/opacamos el color base multiplicando el RGB por un factor para que se vea más oscuro y apagado
-            c = new Color(c.r * 0.55f, c.g * 0.55f, c.b * 0.55f, c.a);
+            c = new Color(c.r * 0.35f, c.g * 0.35f, c.b * 0.35f, c.a);
+        }
+        else if (IsHold)
+        {
+            // Para las notas largas, les damos un tono ligeramente neon/emisor sumándole brillo para diferenciarlas 
+            c = new Color(Mathf.Min(c.r * 1.3f, 1f), Mathf.Min(c.g * 1.3f, 1f), Mathf.Min(c.b * 1.3f, 1f), c.a);
         }
 
         foreach (var mr in GetComponentsInChildren<MeshRenderer>())
@@ -252,9 +334,15 @@ public class Obstacle : MonoBehaviour
         float halfW = totalWidth / 2f;
         float halfH = wallHeight;
 
+        float currentDepth = wallDepth;
+        if (IsHold)
+        {
+            currentDepth = HoldDuration * moveSpeed;
+        }
+
         Gizmos.color = IsFake ? new Color(0.3f, 0.3f, 0.3f, 0.3f) : new Color(0f, 1f, 1f, 0.3f);
-        Gizmos.DrawCube(transform.position + new Vector3(HolePositionX, 2.2f, 0f),
-                        new Vector3(holeWidth, wallHeight, wallDepth));
+        Gizmos.DrawCube(transform.position + new Vector3(HolePositionX, 2.2f, -currentDepth / 2f),
+                        new Vector3(holeWidth, wallHeight, currentDepth));
 
         float winDepth = earlyD + lateD;
         float winCenterZ = jz - earlyD + winDepth / 2f;
@@ -279,13 +367,8 @@ public class Obstacle : MonoBehaviour
 
 #if UNITY_EDITOR
         UnityEditor.Handles.color = Color.yellow;
-        UnityEditor.Handles.Label(new Vector3(halfW + 0.3f, 0f, jz), IsFake ? "FAKE JUDGE" : "JUDGE");
-        UnityEditor.Handles.color = Color.green;
-        UnityEditor.Handles.Label(new Vector3(halfW + 0.3f, 0f, jz - earlyD),
-            $"EARLY -{earlyWindowSeconds * 1000f:F0}ms");
-        UnityEditor.Handles.color = Color.red;
-        UnityEditor.Handles.Label(new Vector3(halfW + 0.3f, 0f, jz + lateD),
-            $"LATE +{lateWindowSeconds * 1000f:F0}ms");
+        string labelText = IsFake ? "FAKE JUDGE" : (IsHold ? "HOLD START" : "JUDGE");
+        UnityEditor.Handles.Label(new Vector3(halfW + 0.3f, 0f, jz), labelText);
 #endif
     }
 }
