@@ -42,14 +42,20 @@ public class ObstacleSpawner : MonoBehaviour
     [SerializeField] private float hardEarlyWindow = 0.28f;
     [SerializeField] private float hardLateWindow = 0.21f;
 
+    [Header("Obstáculos Fake (Sólo Difícil)")]
+    [Tooltip("Probabilidad de que un obstáculo sea falso/trampa en dificultad difícil (de 0 a 1)")]
+    [Range(0f, 1f)]
+    [SerializeField] private float fakeObstacleChance = 0.25f;
+
     [Header("Tutorial")]
     [Tooltip("Cuántos obstáculos al inicio llevan texto de tutorial")]
     [SerializeField] public int tutorialObstacleCount = 10;
 
-    // Velocidad actual en runtime
+    // Variables de configuración de velocidad y juicio actuales
     private float obstacleSpeed = 8f;
     private float _currentEarlyWindow = 0.4f;
     private float _currentLateWindow = 0.3f;
+    private bool _isHardDifficulty = false;
 
     private List<BeatEvent> _pendingEvents;
     private int _nextEventIndex = 0;
@@ -92,6 +98,7 @@ public class ObstacleSpawner : MonoBehaviour
     public void SetDifficulty(Difficulty difficulty)
     {
         Beatmap chosenMap = null;
+        _isHardDifficulty = (difficulty == Difficulty.Hard);
 
         switch (difficulty)
         {
@@ -120,11 +127,12 @@ public class ObstacleSpawner : MonoBehaviour
             InitializeBeatmap(chosenMap);
         }
 
-        Debug.Log($"[Spawner] Dificultad {difficulty} cargada. Velocidad: {obstacleSpeed}. Ventana Early: {_currentEarlyWindow}s / Late: {_currentLateWindow}s.");
+        Debug.Log($"[Spawner] Dificultad {difficulty} cargada. Velocidad: {obstacleSpeed}. Ventana Early: {_currentEarlyWindow}s / Late: {_currentLateWindow}s. ¿Dificultad difícil?: {_isHardDifficulty}");
     }
 
     private void InitializeBeatmap(Beatmap targetBeatmap)
     {
+        if (targetBeatmap == null) return;
         beatMap = targetBeatmap;
         _pendingEvents = new List<BeatEvent>(beatMap.events);
         _pendingEvents.Sort((a, b) => a.beat.CompareTo(b.beat));
@@ -211,7 +219,10 @@ public class ObstacleSpawner : MonoBehaviour
         if (obstacle != null)
         {
             bool isTutorial = _spawnedCount < tutorialObstacleCount;
-            // Pasar los valores dinámicos de velocidad y ventanas de juicio basados en la dificultad
+
+            // Decidir de forma aleatoria si este obstáculo será FAKE (solo ocurre en dificultad DIFÍCIL)
+            bool isFake = _isHardDifficulty && (Random.value < fakeObstacleChance);
+
             obstacle.Initialize(
                 ev.requiredPose,
                 holePosX,
@@ -219,12 +230,12 @@ public class ObstacleSpawner : MonoBehaviour
                 obstacleSpeed,
                 _currentEarlyWindow,
                 _currentLateWindow,
-                isTutorial
+                isTutorial,
+                isFake
             );
         }
 
         _spawnedCount++;
-        Debug.Log($"[ObstacleSpawner] Spawn beat {ev.beat} | Pose: {ev.requiredPose} | HoleX: {holePosX:F2}");
     }
 
     public void SetPaused(bool paused)

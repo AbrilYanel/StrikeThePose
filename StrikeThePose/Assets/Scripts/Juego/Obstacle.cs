@@ -40,6 +40,9 @@ public class Obstacle : MonoBehaviour
     public PoseType RequiredPose { get; private set; }
     public float HolePositionX { get; private set; }
 
+    // Nueva propiedad para marcar si este obstáculo es falso/trampa
+    public bool IsFake { get; private set; } = false;
+
     private bool _evaluated = false;
     private bool _ownsHint = false;
     private bool _enteredWindow = false;
@@ -50,9 +53,6 @@ public class Obstacle : MonoBehaviour
     private float _windowStartZ;
     private float _windowEndZ;
 
-    /// <summary>
-    /// Inicializa las propiedades del obstáculo, su velocidad, y la ventana de juicio dinámica por dificultad.
-    /// </summary>
     public void Initialize(
         PoseType requiredPose,
         float holePosX,
@@ -60,14 +60,16 @@ public class Obstacle : MonoBehaviour
         float speed,
         float earlyWindow,
         float lateWindow,
-        bool showTutorial = false
+        bool showTutorial = false,
+        bool isFake = false
     )
     {
         RequiredPose = requiredPose;
         HolePositionX = holePosX;
         _player = player;
+        IsFake = isFake;
 
-        // Configuraciones dinámicas de dificultad
+        // Configuraciones dinámicas de velocidad y juicio
         moveSpeed = speed;
         earlyWindowSeconds = earlyWindow;
         lateWindowSeconds = lateWindow;
@@ -80,7 +82,8 @@ public class Obstacle : MonoBehaviour
         BuildWall();
         ApplyColor();
 
-        if (showTutorial && UIManager.Instance != null && !UIManager.Instance.IsTutorialHintActive)
+        // En obstáculos fake no mostramos el texto de tutorial de ayuda
+        if (showTutorial && !IsFake && UIManager.Instance != null && !UIManager.Instance.IsTutorialHintActive)
         {
             _ownsHint = true;
             UIManager.Instance.ShowTutorialHint(RequiredPose);
@@ -93,11 +96,11 @@ public class Obstacle : MonoBehaviour
         float z = transform.position.z;
 
         // Mostrar hint si todavía no se tomó
-        if (!_ownsHint && !_evaluated)
+        if (!_ownsHint && !_evaluated && !IsFake)
         {
             if (UIManager.Instance != null && !UIManager.Instance.IsTutorialHintActive)
             {
-                // Solo para obstáculos de tutorial — el flag lo maneja Initialize
+                // Solo para obstáculos de tutorial
             }
         }
 
@@ -105,19 +108,43 @@ public class Obstacle : MonoBehaviour
         if (!_evaluated && z >= _windowStartZ && z <= _windowEndZ)
         {
             _enteredWindow = true;
-            float timeSinceInput = Time.time - _player.LastInputTime;
-            bool recentInput = timeSinceInput <= Time.deltaTime * 2f;
 
-            if (recentInput && _player.LastInputPose == RequiredPose)
+            if (IsFake)
             {
-                bool posOk = IsPlayerInHole(_player.transform.position.x);
-                EvaluateResult(posOk);
+                // Si el obstáculo es FAKE, presionar CUALQUIER tecla de juego activa un fallo inmediato!
+                if (_player.CurrentPose != PoseType.Idle)
+                {
+                    EvaluateResult(false); // Falló por presionar una tecla
+                }
+            }
+            else
+            {
+                // Comportamiento normal para obstáculos reales
+                float timeSinceInput = Time.time - _player.LastInputTime;
+                bool recentInput = timeSinceInput <= Time.deltaTime * 2f;
+
+                if (recentInput && _player.LastInputPose == RequiredPose)
+                {
+                    bool posOk = IsPlayerInHole(_player.transform.position.x);
+                    EvaluateResult(posOk);
+                }
             }
         }
 
-        // Salió de la ventana sin acertar → fallo
+        // Salió de la ventana sin que se haya evaluado
         if (!_evaluated && _enteredWindow && z > _windowEndZ)
-            EvaluateResult(false);
+        {
+            if (IsFake)
+            {
+                // ¡Si el jugador esquivó con éxito (no presionó nada), cuenta como acierto!
+                EvaluateResult(true);
+            }
+            else
+            {
+                // Si era un obstáculo real y no lo presionó -> Fallo
+                EvaluateResult(false);
+            }
+        }
 
         if (z >= _destroyZ)
         {
@@ -129,6 +156,7 @@ public class Obstacle : MonoBehaviour
     private void EvaluateResult(bool success)
     {
         _evaluated = true;
+
         if (GameManager.Instance != null)
             GameManager.Instance.OnObstacleResult(success, RequiredPose);
 
@@ -141,7 +169,7 @@ public class Obstacle : MonoBehaviour
             Destroy(gameObject);
         }
 
-        Debug.Log($"[Obstacle] {(success ? "ACIERTO" : "FALLO")} | Pose: {RequiredPose}");
+        Debug.Log($"[Obstacle] {(success ? "ACIERTO" : "FALLO")} | Pose: {RequiredPose} | ¿Era Fake?: {IsFake}");
     }
 
     private void ReleaseHint()
@@ -206,6 +234,12 @@ public class Obstacle : MonoBehaviour
             _ => Color.white,
         };
 
+        if (IsFake)
+        {
+            // Apagamos/opacamos el color base multiplicando el RGB por un factor para que se vea más oscuro y apagado
+            c = new Color(c.r * 0.55f, c.g * 0.55f, c.b * 0.55f, c.a);
+        }
+
         foreach (var mr in GetComponentsInChildren<MeshRenderer>())
             mr.material.color = c;
     }
@@ -218,14 +252,14 @@ public class Obstacle : MonoBehaviour
         float halfW = totalWidth / 2f;
         float halfH = wallHeight;
 
-        Gizmos.color = new Color(0f, 1f, 1f, 0.3f);
+        Gizmos.color = IsFake ? new Color(0.3f, 0.3f, 0.3f, 0.3f) : new Color(0f, 1f, 1f, 0.3f);
         Gizmos.DrawCube(transform.position + new Vector3(HolePositionX, 2.2f, 0f),
                         new Vector3(holeWidth, wallHeight, wallDepth));
 
         float winDepth = earlyD + lateD;
         float winCenterZ = jz - earlyD + winDepth / 2f;
 
-        Gizmos.color = new Color(0f, 1f, 0f, 0.18f);
+        Gizmos.color = IsFake ? new Color(0.4f, 0f, 0f, 0.15f) : new Color(0f, 1f, 0f, 0.18f);
         Gizmos.DrawCube(new Vector3(0f, halfH / 2f, winCenterZ),
                         new Vector3(totalWidth, halfH, winDepth));
 
@@ -245,7 +279,7 @@ public class Obstacle : MonoBehaviour
 
 #if UNITY_EDITOR
         UnityEditor.Handles.color = Color.yellow;
-        UnityEditor.Handles.Label(new Vector3(halfW + 0.3f, 0f, jz), "JUDGE");
+        UnityEditor.Handles.Label(new Vector3(halfW + 0.3f, 0f, jz), IsFake ? "FAKE JUDGE" : "JUDGE");
         UnityEditor.Handles.color = Color.green;
         UnityEditor.Handles.Label(new Vector3(halfW + 0.3f, 0f, jz - earlyD),
             $"EARLY -{earlyWindowSeconds * 1000f:F0}ms");

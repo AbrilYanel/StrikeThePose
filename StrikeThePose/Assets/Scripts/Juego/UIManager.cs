@@ -74,50 +74,33 @@ public class UIManager : MonoBehaviour
     // ── Lifecycle ─────────────────────────────────────────────────────────────
     private void Start()
     {
+        // Activación inicial de paneles de forma segura
         winPanel?.SetActive(false);
         losePanel?.SetActive(false);
         pausePanel?.SetActive(false);
-        difficultyPanel?.SetActive(false);
         tutorialPanel?.SetActive(false);
 
-        winRetryButton?.onClick.AddListener(RetryLevel);
-        loseRetryButton?.onClick.AddListener(RetryLevel);
-        tutorialStartButton?.onClick.AddListener(HideTutorialPanel);
-        resumeButton?.onClick.AddListener(ResumeGame);
-        restartButton?.onClick.AddListener(RetryLevel);
-        menuButton?.onClick.AddListener(GoToMainMenu);
-
-        // Configuración de botones de dificultad
-        if (easyButton != null) easyButton.onClick.AddListener(() => SelectDifficulty(Difficulty.Easy));
-        if (normalButton != null) normalButton.onClick.AddListener(() => SelectDifficulty(Difficulty.Normal));
-        if (hardButton != null) hardButton.onClick.AddListener(() => SelectDifficulty(Difficulty.Hard));
-
-        if (GameManager.Instance != null)
-        {
-            GameManager.Instance.OnGameOverEvent.AddListener(ShowLosePanel);
-            GameManager.Instance.OnGameWonEvent.AddListener(ShowWinPanel);
-        }
-
-        // Si tenemos panel de dificultad asignado, lo mostramos primero (por ejemplo en el Nivel 1)
         if (difficultyPanel != null)
         {
+            Debug.Log("[UIManager] Activando panel de selección de dificultad.");
             difficultyPanel.SetActive(true);
             Time.timeScale = 0f;
         }
-        // Si no hay panel de dificultad, pero hay de tutorial (como en la escena Tutorial), mostramos ese
         else if (tutorialPanel != null)
         {
+            Debug.Log("[UIManager] No hay panel de dificultad. Activando panel de tutorial.");
             tutorialPanel.SetActive(true);
             Time.timeScale = 0f;
         }
         else
         {
-            // Si no hay ninguno, arranca directo
+            Debug.Log("[UIManager] No se asignó ningún panel inicial. El juego inicia de inmediato.");
             Time.timeScale = 1f;
             _gameStarted = true;
             obstacleSpawner?.StartGame();
         }
 
+        // Ocultar elementos de gameplay
         if (feedbackText != null)
             feedbackText.gameObject.SetActive(false);
 
@@ -126,6 +109,49 @@ public class UIManager : MonoBehaviour
 
         if (tutorialHintBackground != null)
             tutorialHintBackground.SetActive(false);
+
+        // Registro de listeners de botones
+        winRetryButton?.onClick.AddListener(RetryLevel);
+        loseRetryButton?.onClick.AddListener(RetryLevel);
+        tutorialStartButton?.onClick.AddListener(HideTutorialPanel);
+        resumeButton?.onClick.AddListener(ResumeGame);
+        restartButton?.onClick.AddListener(RetryLevel);
+        menuButton?.onClick.AddListener(GoToMainMenu);
+
+        if (easyButton != null)
+        {
+            easyButton.onClick.RemoveAllListeners();
+            easyButton.onClick.AddListener(() => {
+                Debug.Log("[UIManager] Botón FÁCIL clickeado.");
+                SelectDifficulty(Difficulty.Easy);
+            });
+        }
+        if (normalButton != null)
+        {
+            normalButton.onClick.RemoveAllListeners();
+            normalButton.onClick.AddListener(() => {
+                Debug.Log("[UIManager] Botón NORMAL clickeado.");
+                SelectDifficulty(Difficulty.Normal);
+            });
+        }
+        if (hardButton != null)
+        {
+            hardButton.onClick.RemoveAllListeners();
+            hardButton.onClick.AddListener(() => {
+                Debug.Log("[UIManager] Botón DIFÍCIL clickeado.");
+                SelectDifficulty(Difficulty.Hard);
+            });
+        }
+
+        // Registro de eventos de GameManager
+        if (GameManager.Instance != null)
+        {
+            if (GameManager.Instance.OnGameOverEvent != null)
+                GameManager.Instance.OnGameOverEvent.AddListener(ShowLosePanel);
+
+            if (GameManager.Instance.OnGameWonEvent != null)
+                GameManager.Instance.OnGameWonEvent.AddListener(ShowWinPanel);
+        }
     }
 
     private void Update()
@@ -160,20 +186,31 @@ public class UIManager : MonoBehaviour
     // ── Selección de Dificultad ───────────────────────────────────────────────
     private void SelectDifficulty(Difficulty difficulty)
     {
-        // 1. Configurar dificultad en los managers
+        Debug.Log($"[UIManager] Procesando selección de dificultad: {difficulty}");
+
         if (GameManager.Instance != null)
+        {
             GameManager.Instance.SetDifficulty(difficulty);
+        }
 
         if (obstacleSpawner != null)
+        {
             obstacleSpawner.SetDifficulty(difficulty);
+        }
 
-        // 2. Apagar panel de dificultad
-        difficultyPanel?.SetActive(false);
+        if (difficultyPanel != null)
+        {
+            difficultyPanel.SetActive(false);
+        }
 
-        // 3. Reestablecer tiempo y comenzar partida
         Time.timeScale = 1f;
         _gameStarted = true;
-        obstacleSpawner?.StartGame();
+
+        if (obstacleSpawner != null)
+        {
+            Debug.Log("[UIManager] Iniciando Spawner de obstáculos...");
+            obstacleSpawner.StartGame();
+        }
     }
 
     // ── Pausa ─────────────────────────────────────────────────────────────────
@@ -204,7 +241,6 @@ public class UIManager : MonoBehaviour
     {
         if (tutorialHintText == null) return;
 
-        // Teclas a mostrar
         string keyLabel = pose switch
         {
             PoseType.PoseA => "W",

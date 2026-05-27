@@ -16,6 +16,7 @@ public class GameManager : MonoBehaviour
     public int MaxCombo { get; private set; }
     public int Lives { get; private set; }
 
+  
     public Difficulty CurrentDifficulty { get; private set; } = Difficulty.Normal;
 
     [Header("Puntuación")]
@@ -39,9 +40,10 @@ public class GameManager : MonoBehaviour
     [System.Serializable] public class GameOverEvent : UnityEvent { }
     [System.Serializable] public class GameWonEvent : UnityEvent<int, int> { }
 
-    public ResultEvent OnObstacleResultEvent;
-    public GameOverEvent OnGameOverEvent;
-    public GameWonEvent OnGameWonEvent;
+    // Inicializamos los eventos para evitar NullReferenceException
+    public ResultEvent OnObstacleResultEvent = new ResultEvent();
+    public GameOverEvent OnGameOverEvent = new GameOverEvent();
+    public GameWonEvent OnGameWonEvent = new GameWonEvent();
 
     private void Start()
     {
@@ -59,7 +61,7 @@ public class GameManager : MonoBehaviour
             case Difficulty.Easy:
                 maxLives = 7;
                 pointsPerHit = 80;
-                hitsToRecoverLife = 2; // Más fácil recuperar vida
+                hitsToRecoverLife = 2;
                 break;
             case Difficulty.Normal:
                 maxLives = 5;
@@ -68,8 +70,8 @@ public class GameManager : MonoBehaviour
                 break;
             case Difficulty.Hard:
                 maxLives = 3;
-                pointsPerHit = 150; // Más puntos en difícil
-                hitsToRecoverLife = 5; // Más difícil recuperar vida
+                pointsPerHit = 150;
+                hitsToRecoverLife = 4;
                 break;
         }
         Lives = maxLives;
@@ -102,7 +104,7 @@ public class GameManager : MonoBehaviour
                 _consecutiveHits = 0;
                 if (Lives < maxLives)
                 {
-                    Lives++; // ¡Corregido el bug original de "Lives = 10"!
+                    Lives++; // Se corrige el bug de Lives = 10 para aumentar gradualmente
                 }
             }
         }
