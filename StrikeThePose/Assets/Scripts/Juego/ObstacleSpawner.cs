@@ -57,8 +57,12 @@ public class ObstacleSpawner : MonoBehaviour
     private float _currentLateWindow = 0.3f;
     private bool _isHardDifficulty = false;
 
-    private List<BeatEvent> _pendingEvents;
-    private int _nextEventIndex = 0;
+    // Listas separadas para evitar que el desfase físico de los obstáculos (TravelTime) choque con el tiempo real del Área Bonus
+    private List<BeatEvent> _obstacleEvents = new List<BeatEvent>();
+    private List<BeatEvent> _bonusEvents = new List<BeatEvent>();
+
+    private int _nextObstacleIndex = 0;
+    private int _nextBonusIndex = 0;
     private bool _running = false;
     private int _spawnedCount = 0;
 
@@ -134,9 +138,28 @@ public class ObstacleSpawner : MonoBehaviour
     {
         if (targetBeatmap == null) return;
         beatMap = targetBeatmap;
-        _pendingEvents = new List<BeatEvent>(beatMap.events);
-        _pendingEvents.Sort((a, b) => a.beat.CompareTo(b.beat));
-        _nextEventIndex = 0;
+
+        _obstacleEvents.Clear();
+        _bonusEvents.Clear();
+
+        // Clasificamos los eventos: los de Área Bonus ocurren en tiempo real; los obstáculos físicos necesitan el desfase TravelTime
+        foreach (var ev in beatMap.events)
+        {
+            if (ev.isBonusAreaStart || ev.isBonusAreaEnd)
+            {
+                _bonusEvents.Add(ev);
+            }
+            else
+            {
+                _obstacleEvents.Add(ev);
+            }
+        }
+
+        _obstacleEvents.Sort((a, b) => a.beat.CompareTo(b.beat));
+        _bonusEvents.Sort((a, b) => a.beat.CompareTo(b.beat));
+
+        _nextObstacleIndex = 0;
+        _nextBonusIndex = 0;
         _spawnedCount = 0;
     }
 
@@ -168,7 +191,7 @@ public class ObstacleSpawner : MonoBehaviour
         _gameStartRealTime = Time.time;
         _running = true;
 
-        while (_nextEventIndex < _pendingEvents.Count)
+        while (_nextObstacleIndex < _obstacleEvents.Count || _nextBonusIndex < _bonusEvents.Count)
         {
             if (GameManager.Instance != null && GameManager.Instance.IsGameOver)
             {
@@ -181,14 +204,40 @@ public class ObstacleSpawner : MonoBehaviour
                 ? musicSource.time
                 : Mathf.Max(0f, elapsed);
 
-            BeatEvent ev = _pendingEvents[_nextEventIndex];
-            float beatTime = beatMap.BeatToSeconds(ev.beat);
-            float spawnTime = beatTime - TravelTime;
-
-            if (audioTime >= spawnTime)
+            // ── 1. Spawneo de obstáculos físicos (Requiere desfase TravelTime) ──
+            if (_nextObstacleIndex < _obstacleEvents.Count)
             {
-                SpawnObstacle(ev);
-                _nextEventIndex++;
+                BeatEvent ev = _obstacleEvents[_nextObstacleIndex];
+                float beatTime = beatMap.BeatToSeconds(ev.beat);
+                float spawnTime = beatTime - TravelTime;
+
+                if (audioTime >= spawnTime)
+                {
+                    SpawnObstacle(ev);
+                    _nextObstacleIndex++;
+                }
+            }
+
+            // ── 2. Activación instantánea del Área Bonus (En tiempo real, sin desfase) ──
+            if (_nextBonusIndex < _bonusEvents.Count)
+            {
+                BeatEvent ev = _bonusEvents[_nextBonusIndex];
+                float beatTime = beatMap.BeatToSeconds(ev.beat);
+
+                if (audioTime >= beatTime)
+                {
+                    if (ev.isBonusAreaStart)
+                    {
+                        GameManager.Instance?.SetBonusArea(true);
+                        Debug.Log($"[Spawner] ¡Iniciando Área Bonus en beat {ev.beat}!");
+                    }
+                    else if (ev.isBonusAreaEnd)
+                    {
+                        GameManager.Instance?.SetBonusArea(false);
+                        Debug.Log($"[Spawner] ¡Terminando Área Bonus en beat {ev.beat}!");
+                    }
+                    _nextBonusIndex++;
+                }
             }
 
             yield return null;

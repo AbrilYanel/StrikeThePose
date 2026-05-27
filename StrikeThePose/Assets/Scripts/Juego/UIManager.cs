@@ -51,6 +51,12 @@ public class UIManager : MonoBehaviour
     [Tooltip("Fondo opcional detrás del texto de tutorial")]
     [SerializeField] private GameObject tutorialHintBackground;
 
+    [Header("Área Bonus / Frenesí")]
+    [Tooltip("Cartel o banner en pantalla que se activa en el Área Bonus (ej. ¡FRENESÍ DE TECLAS!)")]
+    [SerializeField] private GameObject bonusAreaBanner;
+    [Tooltip("Texto opcional para hacer aparecer el flotante '+20 BONUS!' en pantalla")]
+    [SerializeField] private TextMeshProUGUI bonusPointsFeedbackText;
+
     [Header("Panel de pausa")]
     [SerializeField] private GameObject pausePanel;
     [SerializeField] private Button resumeButton;
@@ -67,6 +73,7 @@ public class UIManager : MonoBehaviour
     private static readonly string[] MissMessages = { "MISS", "TARDE", "INCORRECTO", "NOPE" };
 
     private Coroutine _feedbackCoroutine;
+    private Coroutine _bonusFeedbackCoroutine;
     public bool IsTutorialHintActive { get; private set; } = false;
     private bool _isPaused = false;
     private bool _gameStarted = false;
@@ -79,6 +86,8 @@ public class UIManager : MonoBehaviour
         losePanel?.SetActive(false);
         pausePanel?.SetActive(false);
         tutorialPanel?.SetActive(false);
+        if (bonusAreaBanner != null) bonusAreaBanner.SetActive(false);
+        if (bonusPointsFeedbackText != null) bonusPointsFeedbackText.gameObject.SetActive(false);
 
         if (difficultyPanel != null)
         {
@@ -211,6 +220,48 @@ public class UIManager : MonoBehaviour
             Debug.Log("[UIManager] Iniciando Spawner de obstáculos...");
             obstacleSpawner.StartGame();
         }
+    }
+
+    // ── Área Bonus ────────────────────────────────────────────────────────────
+    public void ShowBonusAreaUI(bool active)
+    {
+        if (bonusAreaBanner != null)
+        {
+            bonusAreaBanner.SetActive(active);
+        }
+    }
+
+    public void ShowBonusPointsFeedback(int points)
+    {
+        if (bonusPointsFeedbackText == null) return;
+
+        if (_bonusFeedbackCoroutine != null)
+            StopCoroutine(_bonusFeedbackCoroutine);
+
+        _bonusFeedbackCoroutine = StartCoroutine(BonusPointsFeedbackRoutine(points));
+    }
+
+    private IEnumerator BonusPointsFeedbackRoutine(int points)
+    {
+        bonusPointsFeedbackText.gameObject.SetActive(true);
+        bonusPointsFeedbackText.text = $"+{points} BONUS!";
+        bonusPointsFeedbackText.color = new Color(1f, 0.85f, 0f); // Amarillo dorado brillante
+
+        float elapsed = 0f;
+        float duration = 0.3f;
+        Vector3 startScale = Vector3.one * 1.5f;
+        bonusPointsFeedbackText.transform.localScale = startScale;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / duration;
+            bonusPointsFeedbackText.transform.localScale = Vector3.Lerp(startScale, Vector3.one, t);
+            yield return null;
+        }
+
+        yield return new WaitForSeconds(0.2f);
+        bonusPointsFeedbackText.gameObject.SetActive(false);
     }
 
     // ── Pausa ─────────────────────────────────────────────────────────────────

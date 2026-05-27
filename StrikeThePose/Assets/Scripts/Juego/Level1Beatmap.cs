@@ -16,7 +16,6 @@ public static class Level1Beatmap
         bm.bpm = 120f;
         bm.startOffsetSeconds = 3.0f;
 
-        // ─── EVENTOS FÁCIL (20 obstáculos - 100% simples, gran espaciado) ───────
         bm.events.Clear();
         bm.events.AddRange(new BeatEvent[]
         {
@@ -24,30 +23,30 @@ public static class Level1Beatmap
             new BeatEvent { beat =   7f, requiredPose = PoseType.PoseA,  holePositionX = -999f },
             new BeatEvent { beat =  13f, requiredPose = PoseType.PoseC,  holePositionX = -999f },
  
-            // ── VERSO 1 — cada 12 beats, solo simples
+            // ── VERSO 1
             new BeatEvent { beat =  15f, requiredPose = PoseType.PoseA,  holePositionX = -999f },
             new BeatEvent { beat =  27f, requiredPose = PoseType.PoseC,  holePositionX = -999f },
             new BeatEvent { beat =  39f, requiredPose = PoseType.PoseA,  holePositionX = -999f },
             new BeatEvent { beat =  51f, requiredPose = PoseType.PoseB,  holePositionX = -999f },
  
-            // ── PRE-CORO — cada 8 beats, solo simples
+            // ── PRE-CORO
             new BeatEvent { beat =  55f, requiredPose = PoseType.PoseA,  holePositionX = -999f },
             new BeatEvent { beat =  63f, requiredPose = PoseType.PoseB,  holePositionX = -999f },
             new BeatEvent { beat =  71f, requiredPose = PoseType.PoseA,  holePositionX = -999f },
  
-            // ── CORO 1 — cada 12 beats, solo simples
+            // ── CORO 1
             new BeatEvent { beat =  75f, requiredPose = PoseType.PoseA,  holePositionX = -999f },
             new BeatEvent { beat =  87f, requiredPose = PoseType.PoseB,  holePositionX = -999f },
             new BeatEvent { beat =  99f, requiredPose = PoseType.PoseA,  holePositionX = -999f },
-            new BeatEvent { beat = 111f, requiredPose = PoseType.PoseC,  holePositionX = -999f }, // Cambiado combo a simple
+            new BeatEvent { beat = 111f, requiredPose = PoseType.PoseC,  holePositionX = -999f },
  
-            // ── PUENTE — cada 10 beats, solo simples
-            new BeatEvent { beat = 115f, requiredPose = PoseType.PoseA,  holePositionX = -999f },
-            new BeatEvent { beat = 125f, requiredPose = PoseType.PoseC,  holePositionX = -999f },
+            // ── PUENTE: ÁREA BONUS (Del beat 115 al 130, ¡frenesí libre!)
+            new BeatEvent { beat = 115f, isBonusAreaStart = true },
+            new BeatEvent { beat = 130f, isBonusAreaEnd = true },
             new BeatEvent { beat = 135f, requiredPose = PoseType.PoseD,  holePositionX = -999f },
             new BeatEvent { beat = 145f, requiredPose = PoseType.PoseB,  holePositionX = -999f },
  
-            // ── OUTRO — cada 8 beats, solo simples
+            // ── OUTRO
             new BeatEvent { beat = 155f, requiredPose = PoseType.PoseA,  holePositionX = -999f },
             new BeatEvent { beat = 163f, requiredPose = PoseType.PoseC,  holePositionX = -999f },
             new BeatEvent { beat = 171f, requiredPose = PoseType.PoseD,  holePositionX = -999f },
@@ -70,7 +69,6 @@ public static class Level1Beatmap
         bm.bpm = 120f;
         bm.startOffsetSeconds = 3.0f;
 
-        // ─── EVENTOS NORMAL (El original del usuario: 40 obstáculos - mezcla equilibrada) ───
         bm.events.Clear();
         bm.events.AddRange(new BeatEvent[]
         {
@@ -94,26 +92,24 @@ public static class Level1Beatmap
             new BeatEvent { beat =  67f, requiredPose = PoseType.PoseC,  holePositionX = -999f },
             new BeatEvent { beat =  71f, requiredPose = PoseType.PoseA,  holePositionX = -999f },
  
-            // ── CORO 1 — cada 6 beats, 4 simples de entrada luego simple+combo
+            // ── CORO 1 — cada 6 beats, 4 simples luego combo
             new BeatEvent { beat =  75f, requiredPose = PoseType.PoseA,  holePositionX = -999f },
             new BeatEvent { beat =  81f, requiredPose = PoseType.PoseC,  holePositionX = -999f },
             new BeatEvent { beat =  87f, requiredPose = PoseType.PoseB,  holePositionX = -999f },
             new BeatEvent { beat =  93f, requiredPose = PoseType.PoseD,  holePositionX = -999f },
             new BeatEvent { beat =  99f, requiredPose = PoseType.PoseA,  holePositionX = -999f },
-            new BeatEvent { beat = 105f, requiredPose = PoseType.PoseAB, holePositionX = -999f }, // W+A
-            new BeatEvent { beat = 111f, requiredPose = PoseType.PoseBC, holePositionX = -999f }, // A+S
+            new BeatEvent { beat = 105f, requiredPose = PoseType.PoseAB, holePositionX = -999f },
+            new BeatEvent { beat = 111f, requiredPose = PoseType.PoseBC, holePositionX = -999f },
  
-            // ── PUENTE — cada 5 beats, mezcla suave
-            new BeatEvent { beat = 115f, requiredPose = PoseType.PoseA,  holePositionX = -999f },
-            new BeatEvent { beat = 120f, requiredPose = PoseType.PoseAB, holePositionX = -999f },
-            new BeatEvent { beat = 125f, requiredPose = PoseType.PoseC,  holePositionX = -999f },
-            new BeatEvent { beat = 130f, requiredPose = PoseType.PoseBC, holePositionX = -999f },
+            // ── PUENTE: ÁREA BONUS (Del beat 115 al 130, ¡frenesí libre!)
+            new BeatEvent { beat = 115f, isBonusAreaStart = true },
+            new BeatEvent { beat = 130f, isBonusAreaEnd = true },
             new BeatEvent { beat = 135f, requiredPose = PoseType.PoseD,  holePositionX = -999f },
             new BeatEvent { beat = 140f, requiredPose = PoseType.PoseAD, holePositionX = -999f },
             new BeatEvent { beat = 145f, requiredPose = PoseType.PoseB,  holePositionX = -999f },
             new BeatEvent { beat = 150f, requiredPose = PoseType.PoseA,  holePositionX = -999f },
  
-            // ── OUTRO — cada 4 beats, alternando simple+combo, cierre simple
+            // ── OUTRO — cada 4 beats, mezcla de combos
             new BeatEvent { beat = 155f, requiredPose = PoseType.PoseA,  holePositionX = -999f },
             new BeatEvent { beat = 159f, requiredPose = PoseType.PoseAD, holePositionX = -999f },
             new BeatEvent { beat = 163f, requiredPose = PoseType.PoseC,  holePositionX = -999f },
@@ -140,17 +136,16 @@ public static class Level1Beatmap
         bm.bpm = 120f;
         bm.startOffsetSeconds = 3.0f;
 
-        // ─── EVENTOS DIFÍCIL (65 obstáculos - alta densidad, muchas combinaciones, ritmos rápidos) ───
         bm.events.Clear();
         bm.events.AddRange(new BeatEvent[]
         {
-            // ── INTRO (Espaciado normal, calentamiento)
+            // ── INTRO
             new BeatEvent { beat =   4f, requiredPose = PoseType.PoseA,  holePositionX = -999f },
             new BeatEvent { beat =   7f, requiredPose = PoseType.PoseC,  holePositionX = -999f },
             new BeatEvent { beat =  10f, requiredPose = PoseType.PoseB,  holePositionX = -999f },
             new BeatEvent { beat =  13f, requiredPose = PoseType.PoseD,  holePositionX = -999f },
  
-            // ── VERSO 1 — cada 4 beats (ritmo acelerado)
+            // ── VERSO 1 — cada 4 beats
             new BeatEvent { beat =  15f, requiredPose = PoseType.PoseA,  holePositionX = -999f },
             new BeatEvent { beat =  19f, requiredPose = PoseType.PoseB,  holePositionX = -999f },
             new BeatEvent { beat =  23f, requiredPose = PoseType.PoseC,  holePositionX = -999f },
@@ -158,23 +153,23 @@ public static class Level1Beatmap
             new BeatEvent { beat =  31f, requiredPose = PoseType.PoseA,  holePositionX = -999f },
             new BeatEvent { beat =  35f, requiredPose = PoseType.PoseC,  holePositionX = -999f },
             new BeatEvent { beat =  39f, requiredPose = PoseType.PoseB,  holePositionX = -999f },
-            new BeatEvent { beat =  43f, requiredPose = PoseType.PoseAB, holePositionX = -999f }, // Combo!
-            new BeatEvent { beat =  47f, requiredPose = PoseType.PoseCD, holePositionX = -999f }, // Combo!
-            new BeatEvent { beat =  51f, requiredPose = PoseType.PoseBC, holePositionX = -999f }, // Combo!
+            new BeatEvent { beat =  43f, requiredPose = PoseType.PoseAB, holePositionX = -999f },
+            new BeatEvent { beat =  47f, requiredPose = PoseType.PoseCD, holePositionX = -999f },
+            new BeatEvent { beat =  51f, requiredPose = PoseType.PoseBC, holePositionX = -999f },
  
-            // ── PRE-CORO — ráfagas veloces cada 2 beats! (Exige reacción rápida)
+            // ── PRE-CORO — cada 2 beats
             new BeatEvent { beat =  55f, requiredPose = PoseType.PoseA,  holePositionX = -999f },
             new BeatEvent { beat =  57f, requiredPose = PoseType.PoseD,  holePositionX = -999f },
             new BeatEvent { beat =  59f, requiredPose = PoseType.PoseB,  holePositionX = -999f },
             new BeatEvent { beat =  61f, requiredPose = PoseType.PoseC,  holePositionX = -999f },
-            new BeatEvent { beat =  63f, requiredPose = PoseType.PoseAD, holePositionX = -999f }, // Combo!
-            new BeatEvent { beat =  65f, requiredPose = PoseType.PoseBC, holePositionX = -999f }, // Combo!
+            new BeatEvent { beat =  63f, requiredPose = PoseType.PoseAD, holePositionX = -999f },
+            new BeatEvent { beat =  65f, requiredPose = PoseType.PoseBC, holePositionX = -999f },
             new BeatEvent { beat =  67f, requiredPose = PoseType.PoseA,  holePositionX = -999f },
             new BeatEvent { beat =  69f, requiredPose = PoseType.PoseC,  holePositionX = -999f },
-            new BeatEvent { beat =  71f, requiredPose = PoseType.PoseCD, holePositionX = -999f }, // Combo!
-            new BeatEvent { beat =  73f, requiredPose = PoseType.PoseAB, holePositionX = -999f }, // Combo!
+            new BeatEvent { beat =  71f, requiredPose = PoseType.PoseCD, holePositionX = -999f },
+            new BeatEvent { beat =  73f, requiredPose = PoseType.PoseAB, holePositionX = -999f },
  
-            // ── CORO 1 — cada 3 beats, alta intensidad de combo poses
+            // ── CORO 1 — cada 3 beats
             new BeatEvent { beat =  75f, requiredPose = PoseType.PoseA,  holePositionX = -999f },
             new BeatEvent { beat =  78f, requiredPose = PoseType.PoseAB, holePositionX = -999f },
             new BeatEvent { beat =  81f, requiredPose = PoseType.PoseC,  holePositionX = -999f },
@@ -190,19 +185,16 @@ public static class Level1Beatmap
             new BeatEvent { beat = 111f, requiredPose = PoseType.PoseAD, holePositionX = -999f },
             new BeatEvent { beat = 114f, requiredPose = PoseType.PoseCD, holePositionX = -999f },
  
-            // ── PUENTE — cada 4 beats, mezcla de combos continuos
-            new BeatEvent { beat = 115f, requiredPose = PoseType.PoseA,  holePositionX = -999f },
-            new BeatEvent { beat = 119f, requiredPose = PoseType.PoseAB, holePositionX = -999f },
-            new BeatEvent { beat = 123f, requiredPose = PoseType.PoseC,  holePositionX = -999f },
-            new BeatEvent { beat = 127f, requiredPose = PoseType.PoseBC, holePositionX = -999f },
-            new BeatEvent { beat = 131f, requiredPose = PoseType.PoseD,  holePositionX = -999f },
-            new BeatEvent { beat = 135f, requiredPose = PoseType.PoseCD, holePositionX = -999f },
+            // ── PUENTE: ÁREA BONUS (Del beat 115 al 130, ¡frenesí libre!)
+            new BeatEvent { beat = 115f, isBonusAreaStart = true },
+            new BeatEvent { beat = 130f, isBonusAreaEnd = true },
+            new BeatEvent { beat = 135f, requiredPose = PoseType.PoseD,  holePositionX = -999f },
             new BeatEvent { beat = 139f, requiredPose = PoseType.PoseAD, holePositionX = -999f },
             new BeatEvent { beat = 143f, requiredPose = PoseType.PoseBC, holePositionX = -999f },
             new BeatEvent { beat = 147f, requiredPose = PoseType.PoseAB, holePositionX = -999f },
             new BeatEvent { beat = 151f, requiredPose = PoseType.PoseAD, holePositionX = -999f },
  
-            // ── OUTRO — cada 2 beats (final frenético)
+            // ── OUTRO — cada 2 beats
             new BeatEvent { beat = 155f, requiredPose = PoseType.PoseA,  holePositionX = -999f },
             new BeatEvent { beat = 157f, requiredPose = PoseType.PoseAD, holePositionX = -999f },
             new BeatEvent { beat = 159f, requiredPose = PoseType.PoseC,  holePositionX = -999f },

@@ -10,5 +10,12 @@ public class BeatEvent
     public PoseType requiredPose = PoseType.PoseA;
     [Tooltip("Posición X del hueco. Dejá en -999 para que sea random en runtime.")]
     public float holePositionX = -999f;
+
+    [Header("Área Bonus")]
+    [Tooltip("¿Inicia un área de bonus aquí? (El jugador puede presionar teclas rápidamente para ganar puntos)")]
+    public bool isBonusAreaStart = false;
+    [Tooltip("¿Termina el área de bonus aquí?")]
+    public bool isBonusAreaEnd = false;
+
     public bool IsHoleRandom => holePositionX <= -999f;
 }

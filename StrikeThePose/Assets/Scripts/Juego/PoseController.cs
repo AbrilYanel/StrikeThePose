@@ -19,12 +19,20 @@ public class PoseController : MonoBehaviour
 {
     [Header("Animator")]
     [SerializeField] private Animator animator;
+
+    [Header("Configuración del Bonus")]
+    [Tooltip("Tiempo mínimo en segundos que debe pasar entre pulsaciones puntuables del Área Bonus (evita spam descontrolado)")]
+    [SerializeField] private float bonusInputCooldown = 0.15f;
+
     public PoseType CurrentPose { get; private set; } = PoseType.Idle;
     public float LastInputTime { get; private set; } = -999f;
     public PoseType LastInputPose { get; private set; } = PoseType.Idle;
 
     // Estado de teclas del frame anterior (para detectar cambios)
     private bool _prevW, _prevA, _prevS, _prevD;
+
+    // Guarda el timestamp del último bonus otorgado
+    private float _lastBonusAwardTime = -999f;
 
     private void Start()
     {
@@ -76,13 +84,32 @@ public class PoseController : MonoBehaviour
 
     /// <summary>
     /// Establece la pose activa y registra el timestamp de input.
-    /// Llamado tanto desde Update() como desde PlayerMovement si es necesario.
     /// </summary>
     public void SetPose(PoseType pose)
     {
+        PoseType oldPose = CurrentPose;
         CurrentPose = pose;
         LastInputPose = pose;
         LastInputTime = Time.time;
+
+        // 💥 ÁREA BONUS: Premiamos los cambios de pose si estamos en zona de bonus y pasó el cooldown
+        if (GameManager.Instance != null && GameManager.Instance.IsInBonusArea)
+        {
+            // Solo premiamos si el jugador entra en una pose de juego válida y ha cambiado respecto a la anterior
+            if (pose != PoseType.Idle && pose != oldPose)
+            {
+                // Aplicamos el Cooldown de seguridad
+                if (Time.time - _lastBonusAwardTime >= bonusInputCooldown)
+                {
+                    GameManager.Instance.AddBonusPoints(20); // Otorga los puntos
+                    _lastBonusAwardTime = Time.time;         // Registra el tiempo actual
+                }
+                else
+                {
+                    Debug.Log("[PoseController] Pulsación ignorada por Cooldown del Bonus.");
+                }
+            }
+        }
 
         if (animator != null)
         {
@@ -106,5 +133,4 @@ public class PoseController : MonoBehaviour
     }
 
     public bool MatchesPose(PoseType required) => CurrentPose == required;
-
 }

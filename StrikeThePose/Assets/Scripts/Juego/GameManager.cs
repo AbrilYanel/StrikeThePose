@@ -16,8 +16,11 @@ public class GameManager : MonoBehaviour
     public int MaxCombo { get; private set; }
     public int Lives { get; private set; }
 
-  
+   
     public Difficulty CurrentDifficulty { get; private set; } = Difficulty.Normal;
+
+   
+    public bool IsInBonusArea { get; private set; } = false;
 
     [Header("Puntuación")]
     [SerializeField] private int pointsPerHit = 100;
@@ -40,7 +43,6 @@ public class GameManager : MonoBehaviour
     [System.Serializable] public class GameOverEvent : UnityEvent { }
     [System.Serializable] public class GameWonEvent : UnityEvent<int, int> { }
 
-    // Inicializamos los eventos para evitar NullReferenceException
     public ResultEvent OnObstacleResultEvent = new ResultEvent();
     public GameOverEvent OnGameOverEvent = new GameOverEvent();
     public GameWonEvent OnGameWonEvent = new GameWonEvent();
@@ -81,6 +83,34 @@ public class GameManager : MonoBehaviour
         MaxCombo = 0;
         IsGameOver = false;
         IsGameWon = false;
+        IsInBonusArea = false;
+    }
+
+    /// <summary>
+    /// Activa o desactiva el estado de Área Bonus.
+    /// </summary>
+    public void SetBonusArea(bool active)
+    {
+        IsInBonusArea = active;
+        if (UIManager.Instance != null)
+        {
+            UIManager.Instance.ShowBonusAreaUI(active);
+        }
+    }
+
+    /// <summary>
+    /// Añade puntos de bonificación (por ejemplo, durante el frenesí del Área Bonus).
+    /// </summary>
+    public void AddBonusPoints(int points)
+    {
+        if (IsGameOver || IsGameWon) return;
+
+        Score += points;
+
+        if (UIManager.Instance != null)
+        {
+            UIManager.Instance.ShowBonusPointsFeedback(points);
+        }
     }
 
     public void OnObstacleResult(bool success, PoseType poseRequired)
@@ -104,7 +134,7 @@ public class GameManager : MonoBehaviour
                 _consecutiveHits = 0;
                 if (Lives < maxLives)
                 {
-                    Lives++; // Se corrige el bug de Lives = 10 para aumentar gradualmente
+                    Lives++;
                 }
             }
         }
@@ -144,5 +174,6 @@ public class GameManager : MonoBehaviour
         IsGameOver = false;
         IsGameWon = false;
         _consecutiveHits = 0;
+        IsInBonusArea = false;
     }
 }
