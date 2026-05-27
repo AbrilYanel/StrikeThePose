@@ -33,6 +33,13 @@ public class UIManager : MonoBehaviour
     [SerializeField] private TextMeshProUGUI loseMissesText;
     [SerializeField] private Button loseRetryButton;
 
+    [Header("Panel de Selección de Dificultad")]
+    [Tooltip("Asigna aquí el panel que contiene los botones de selección de dificultad")]
+    [SerializeField] private GameObject difficultyPanel;
+    [SerializeField] private Button easyButton;
+    [SerializeField] private Button normalButton;
+    [SerializeField] private Button hardButton;
+
     [Header("Panel de tutorial (intro)")]
     [SerializeField] private GameObject tutorialPanel;
     [SerializeField] private TextMeshProUGUI tutorialText;
@@ -60,19 +67,18 @@ public class UIManager : MonoBehaviour
     private static readonly string[] MissMessages = { "MISS", "TARDE", "INCORRECTO", "NOPE" };
 
     private Coroutine _feedbackCoroutine;
-
     public bool IsTutorialHintActive { get; private set; } = false;
-
     private bool _isPaused = false;
     private bool _gameStarted = false;
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
-
     private void Start()
     {
         winPanel?.SetActive(false);
         losePanel?.SetActive(false);
         pausePanel?.SetActive(false);
+        difficultyPanel?.SetActive(false);
+        tutorialPanel?.SetActive(false);
 
         winRetryButton?.onClick.AddListener(RetryLevel);
         loseRetryButton?.onClick.AddListener(RetryLevel);
@@ -81,16 +87,35 @@ public class UIManager : MonoBehaviour
         restartButton?.onClick.AddListener(RetryLevel);
         menuButton?.onClick.AddListener(GoToMainMenu);
 
+        // Configuración de botones de dificultad
+        if (easyButton != null) easyButton.onClick.AddListener(() => SelectDifficulty(Difficulty.Easy));
+        if (normalButton != null) normalButton.onClick.AddListener(() => SelectDifficulty(Difficulty.Normal));
+        if (hardButton != null) hardButton.onClick.AddListener(() => SelectDifficulty(Difficulty.Hard));
+
         if (GameManager.Instance != null)
         {
             GameManager.Instance.OnGameOverEvent.AddListener(ShowLosePanel);
             GameManager.Instance.OnGameWonEvent.AddListener(ShowWinPanel);
         }
 
-        if (tutorialPanel != null)
+        // Si tenemos panel de dificultad asignado, lo mostramos primero (por ejemplo en el Nivel 1)
+        if (difficultyPanel != null)
+        {
+            difficultyPanel.SetActive(true);
+            Time.timeScale = 0f;
+        }
+        // Si no hay panel de dificultad, pero hay de tutorial (como en la escena Tutorial), mostramos ese
+        else if (tutorialPanel != null)
         {
             tutorialPanel.SetActive(true);
             Time.timeScale = 0f;
+        }
+        else
+        {
+            // Si no hay ninguno, arranca directo
+            Time.timeScale = 1f;
+            _gameStarted = true;
+            obstacleSpawner?.StartGame();
         }
 
         if (feedbackText != null)
@@ -98,6 +123,7 @@ public class UIManager : MonoBehaviour
 
         if (tutorialHintText != null)
             tutorialHintText.gameObject.SetActive(false);
+
         if (tutorialHintBackground != null)
             tutorialHintBackground.SetActive(false);
     }
@@ -131,8 +157,26 @@ public class UIManager : MonoBehaviour
         }
     }
 
-    // ── Pausa ─────────────────────────────────────────────────────────────────
+    // ── Selección de Dificultad ───────────────────────────────────────────────
+    private void SelectDifficulty(Difficulty difficulty)
+    {
+        // 1. Configurar dificultad en los managers
+        if (GameManager.Instance != null)
+            GameManager.Instance.SetDifficulty(difficulty);
 
+        if (obstacleSpawner != null)
+            obstacleSpawner.SetDifficulty(difficulty);
+
+        // 2. Apagar panel de dificultad
+        difficultyPanel?.SetActive(false);
+
+        // 3. Reestablecer tiempo y comenzar partida
+        Time.timeScale = 1f;
+        _gameStarted = true;
+        obstacleSpawner?.StartGame();
+    }
+
+    // ── Pausa ─────────────────────────────────────────────────────────────────
     private void PauseGame()
     {
         _isPaused = true;
@@ -156,7 +200,6 @@ public class UIManager : MonoBehaviour
     }
 
     // ── Tutorial hint ─────────────────────────────────────────────────────────
-
     public void ShowTutorialHint(PoseType pose)
     {
         if (tutorialHintText == null) return;
@@ -202,6 +245,7 @@ public class UIManager : MonoBehaviour
     {
         if (tutorialHintText != null)
             tutorialHintText.gameObject.SetActive(false);
+
         if (tutorialHintBackground != null)
             tutorialHintBackground.SetActive(false);
 
@@ -209,7 +253,6 @@ public class UIManager : MonoBehaviour
     }
 
     // ── Feedback de hit/miss ──────────────────────────────────────────────────
-
     public void ShowHitFeedback(bool success)
     {
         if (feedbackText == null) return;
@@ -229,6 +272,7 @@ public class UIManager : MonoBehaviour
         feedbackText.text = success
             ? HitMessages[Random.Range(0, HitMessages.Length)]
             : MissMessages[Random.Range(0, MissMessages.Length)];
+
         feedbackText.color = success
             ? new Color(0.2f, 1f, 0.4f)
             : new Color(1f, 0.25f, 0.25f);
@@ -242,6 +286,7 @@ public class UIManager : MonoBehaviour
             elapsed += Time.deltaTime;
             float t = elapsed / feedbackDuration;
             feedbackText.transform.localScale = Vector3.Lerp(startSc, Vector3.one, t);
+
             Color c = feedbackText.color;
             feedbackText.color = new Color(c.r, c.g, c.b, Mathf.Lerp(1f, 0f, t));
             yield return null;
@@ -251,7 +296,6 @@ public class UIManager : MonoBehaviour
     }
 
     // ── Paneles de resultado ──────────────────────────────────────────────────
-
     private void ShowWinPanel(int score, int maxCombo)
     {
         winPanel?.SetActive(true);

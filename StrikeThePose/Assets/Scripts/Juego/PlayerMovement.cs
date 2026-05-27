@@ -9,11 +9,9 @@ public class PlayerMovement : MonoBehaviour
     [Header("Movimiento lateral")]
     [Tooltip("Velocidad de seguimiento del mouse (lerp)")]
     [SerializeField] private float followSpeed = 8f;
-
     [Tooltip("Límites del movimiento en X")]
     [SerializeField] private float xMin = -4f;
     [SerializeField] private float xMax = 4f;
-
     [Header("Referencias")]
     [SerializeField] private Camera mainCamera;
 
@@ -26,7 +24,7 @@ public class PlayerMovement : MonoBehaviour
     private void Update()
     {
         HandleMouseMovement();
-        // ⚠️ Las poses son manejadas exclusivamente por PoseController.Update()
+        // Las poses son manejadas exclusivamente por PoseController.Update()
     }
 
     /// <summary>
@@ -38,9 +36,7 @@ public class PlayerMovement : MonoBehaviour
         Vector3 mouseScreen = Input.mousePosition;
         mouseScreen.z = mainCamera.WorldToScreenPoint(transform.position).z;
         Vector3 mouseWorld = mainCamera.ScreenToWorldPoint(mouseScreen);
-
         float targetX = Mathf.Clamp(mouseWorld.x, xMin, xMax);
-
         Vector3 newPos = transform.position;
         newPos.x = Mathf.Lerp(transform.position.x, targetX, Time.deltaTime * followSpeed);
         transform.position = newPos;

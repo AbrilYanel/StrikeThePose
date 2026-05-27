@@ -19,7 +19,6 @@ public class PoseController : MonoBehaviour
 {
     [Header("Animator")]
     [SerializeField] private Animator animator;
-
     public PoseType CurrentPose { get; private set; } = PoseType.Idle;
     public float LastInputTime { get; private set; } = -999f;
     public PoseType LastInputPose { get; private set; } = PoseType.Idle;
@@ -42,14 +41,16 @@ public class PoseController : MonoBehaviour
 
         // Detectar si alguna tecla relevante cambió este frame
         bool changed = (w != _prevW) || (a != _prevA) || (s != _prevS) || (d != _prevD);
-
         if (changed)
         {
             PoseType newPose = ResolvePose(w, a, s, d);
             SetPose(newPose);
         }
 
-        _prevW = w; _prevA = a; _prevS = s; _prevD = d;
+        _prevW = w;
+        _prevA = a;
+        _prevS = s;
+        _prevD = d;
     }
 
     /// <summary>
@@ -101,9 +102,9 @@ public class PoseController : MonoBehaviour
             else
                 animator.SetTrigger("Idle");
         }
-
         Debug.Log($"[Player] Pose: {pose} en t={Time.time:F2}");
     }
 
     public bool MatchesPose(PoseType required) => CurrentPose == required;
+
 }

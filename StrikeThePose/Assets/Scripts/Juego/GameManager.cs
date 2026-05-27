@@ -16,6 +16,8 @@ public class GameManager : MonoBehaviour
     public int MaxCombo { get; private set; }
     public int Lives { get; private set; }
 
+    public Difficulty CurrentDifficulty { get; private set; } = Difficulty.Normal;
+
     [Header("Puntuación")]
     [SerializeField] private int pointsPerHit = 100;
     [SerializeField] private int comboBonusEvery = 5;
@@ -30,7 +32,7 @@ public class GameManager : MonoBehaviour
     public bool IsGameOver { get; private set; }
     public bool IsGameWon { get; private set; }
 
-    // ✅ Contador de aciertos consecutivos para recuperar vida
+    // Contador de aciertos consecutivos para recuperar vida
     private int _consecutiveHits = 0;
 
     [System.Serializable] public class ResultEvent : UnityEvent<bool, PoseType> { }
@@ -46,6 +48,39 @@ public class GameManager : MonoBehaviour
         Lives = maxLives;
     }
 
+    /// <summary>
+    /// Configura las vidas y puntuaciones máximas según la dificultad elegida.
+    /// </summary>
+    public void SetDifficulty(Difficulty difficulty)
+    {
+        CurrentDifficulty = difficulty;
+        switch (difficulty)
+        {
+            case Difficulty.Easy:
+                maxLives = 7;
+                pointsPerHit = 80;
+                hitsToRecoverLife = 2; // Más fácil recuperar vida
+                break;
+            case Difficulty.Normal:
+                maxLives = 5;
+                pointsPerHit = 100;
+                hitsToRecoverLife = 3;
+                break;
+            case Difficulty.Hard:
+                maxLives = 3;
+                pointsPerHit = 150; // Más puntos en difícil
+                hitsToRecoverLife = 5; // Más difícil recuperar vida
+                break;
+        }
+        Lives = maxLives;
+        _consecutiveHits = 0;
+        Score = 0;
+        Combo = 0;
+        MaxCombo = 0;
+        IsGameOver = false;
+        IsGameWon = false;
+    }
+
     public void OnObstacleResult(bool success, PoseType poseRequired)
     {
         if (IsGameOver || IsGameWon) return;
@@ -54,28 +89,27 @@ public class GameManager : MonoBehaviour
         {
             Combo++;
             if (Combo > MaxCombo) MaxCombo = Combo;
+
             int bonus = (Combo > 0 && Combo % comboBonusEvery == 0) ? 2 : 1;
             Score += pointsPerHit * bonus;
 
-            // ✅ Contar aciertos consecutivos
+            // Contar aciertos consecutivos
             _consecutiveHits++;
 
-            // ✅ Recuperar vida cada X aciertos
+            // Recuperar vida cada X aciertos
             if (_consecutiveHits >= hitsToRecoverLife)
             {
                 _consecutiveHits = 0;
-
                 if (Lives < maxLives)
                 {
-                    Lives=10;
-                    
+                    Lives++; // ¡Corregido el bug original de "Lives = 10"!
                 }
             }
         }
         else
         {
             Combo = 0;
-            _consecutiveHits = 0; // ✅ Resetear contador al fallar
+            _consecutiveHits = 0; // Resetear contador al fallar
             Lives--;
 
             if (CameraEffects.Instance != null)

@@ -1,5 +1,4 @@
 ﻿using UnityEngine;
-using TMPro;
 
 public class Obstacle : MonoBehaviour
 {
@@ -19,15 +18,15 @@ public class Obstacle : MonoBehaviour
 
     [Header("Colores — Poses simples")]
     [SerializeField] private Color colorPoseA = new Color(0.2f, 0.6f, 1f);    // azul
-    [SerializeField] private Color colorPoseB = new Color(1f, 0.4f, 0.2f);  // naranja
+    [SerializeField] private Color colorPoseB = new Color(1f, 0.4f, 0.2f);   // naranja
     [SerializeField] private Color colorPoseC = new Color(0.3f, 0.9f, 0.3f);  // verde
     [SerializeField] private Color colorPoseD = new Color(0.9f, 0.2f, 0.8f);  // magenta
 
     [Header("Colores — Poses combinadas")]
     [SerializeField] private Color colorPoseAB = new Color(0.6f, 0.3f, 1f);   // violeta  (W+A)
-    [SerializeField] private Color colorPoseAD = new Color(1f, 0.9f, 0.1f); // amarillo (W+D)
+    [SerializeField] private Color colorPoseAD = new Color(1f, 0.9f, 0.1f);   // amarillo (W+D)
     [SerializeField] private Color colorPoseBC = new Color(0.1f, 0.9f, 0.9f); // cyan     (A+S)
-    [SerializeField] private Color colorPoseCD = new Color(1f, 0.5f, 0.7f); // rosa     (S+D)
+    [SerializeField] private Color colorPoseCD = new Color(1f, 0.5f, 0.7f);   // rosa     (S+D)
 
     [Header("Ventana de juicio")]
     [Tooltip("Segundos ANTES de la línea en los que se acepta input")]
@@ -45,19 +44,36 @@ public class Obstacle : MonoBehaviour
     private bool _ownsHint = false;
     private bool _enteredWindow = false;
     private PoseController _player;
+
     private float _judgeLineZ;
     private float _destroyZ;
     private float _windowStartZ;
     private float _windowEndZ;
 
-    public void Initialize(PoseType requiredPose, float holePosX, PoseController player, bool showTutorial = false)
+    /// <summary>
+    /// Inicializa las propiedades del obstáculo, su velocidad, y la ventana de juicio dinámica por dificultad.
+    /// </summary>
+    public void Initialize(
+        PoseType requiredPose,
+        float holePosX,
+        PoseController player,
+        float speed,
+        float earlyWindow,
+        float lateWindow,
+        bool showTutorial = false
+    )
     {
         RequiredPose = requiredPose;
         HolePositionX = holePosX;
         _player = player;
+
+        // Configuraciones dinámicas de dificultad
+        moveSpeed = speed;
+        earlyWindowSeconds = earlyWindow;
+        lateWindowSeconds = lateWindow;
+
         _judgeLineZ = player.transform.position.z;
         _destroyZ = _judgeLineZ + destroyOffset;
-
         _windowStartZ = _judgeLineZ - (earlyWindowSeconds * moveSpeed);
         _windowEndZ = _judgeLineZ + (lateWindowSeconds * moveSpeed);
 
@@ -81,7 +97,7 @@ public class Obstacle : MonoBehaviour
         {
             if (UIManager.Instance != null && !UIManager.Instance.IsTutorialHintActive)
             {
-                // solo para obstáculos de tutorial — el flag lo maneja Initialize
+                // Solo para obstáculos de tutorial — el flag lo maneja Initialize
             }
         }
 
@@ -89,7 +105,6 @@ public class Obstacle : MonoBehaviour
         if (!_evaluated && z >= _windowStartZ && z <= _windowEndZ)
         {
             _enteredWindow = true;
-
             float timeSinceInput = Time.time - _player.LastInputTime;
             bool recentInput = timeSinceInput <= Time.deltaTime * 2f;
 
@@ -114,7 +129,6 @@ public class Obstacle : MonoBehaviour
     private void EvaluateResult(bool success)
     {
         _evaluated = true;
-
         if (GameManager.Instance != null)
             GameManager.Instance.OnObstacleResult(success, RequiredPose);
 
@@ -154,6 +168,7 @@ public class Obstacle : MonoBehaviour
         float rightStart = HolePositionX + halfHole;
         float leftOrigin = -totalWidth / 2f;
         float rightEnd = totalWidth / 2f;
+
         float leftWidth = leftEnd - leftOrigin;
         float rightWidth = rightEnd - rightStart;
 
@@ -209,6 +224,7 @@ public class Obstacle : MonoBehaviour
 
         float winDepth = earlyD + lateD;
         float winCenterZ = jz - earlyD + winDepth / 2f;
+
         Gizmos.color = new Color(0f, 1f, 0f, 0.18f);
         Gizmos.DrawCube(new Vector3(0f, halfH / 2f, winCenterZ),
                         new Vector3(totalWidth, halfH, winDepth));
