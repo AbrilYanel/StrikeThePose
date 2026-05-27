@@ -7,6 +7,6 @@ public class ChangeScenes : MonoBehaviour
 {
    public void SiguienteEscena()
     {
-        SceneManager.LoadScene(1);
+        SceneManager.LoadScene("SelectorNivel");
     }
 }
