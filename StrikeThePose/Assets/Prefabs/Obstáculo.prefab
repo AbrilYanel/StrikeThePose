@@ -188,6 +188,12 @@ MonoBehaviour:
   wallLeft: {fileID: 1790949946564735018}
   wallRight: {fileID: 8323377124152819161}
   holeZoneTrigger: {fileID: 6476581469917459653}
+  hitParticlePrefab: {fileID: 901587287028533040, guid: 8ca1e7de761a43a4f8e4bd6d5fe287d9,
+    type: 3}
+  hitParticleDuration: 1
+  hitParticleOffset: {x: 0, y: -1, z: 0}
+  hitParticleScale: 5
+  hitParticlePrewarmTime: 0.15
   totalWidth: 14
   holeWidth: 2.5
   wallHeight: 4
@@ -196,10 +202,13 @@ MonoBehaviour:
   colorPoseB: {r: 1, g: 0.4, b: 0.2, a: 1}
   colorPoseC: {r: 0.3, g: 0.9, b: 0.3, a: 1}
   colorPoseD: {r: 0.9, g: 0.2, b: 0.8, a: 1}
+  colorPoseAB: {r: 0.6, g: 0.3, b: 1, a: 1}
+  colorPoseAD: {r: 1, g: 0.9, b: 0.1, a: 1}
+  colorPoseBC: {r: 0.1, g: 0.9, b: 0.9, a: 1}
+  colorPoseCD: {r: 1, g: 0.5, b: 0.7, a: 1}
   earlyWindowSeconds: 0.1
   lateWindowSeconds: 0.1
   destroyOffset: 3
-  tutorialShowDistance: 15
 --- !u!65 &6476581469917459653
 BoxCollider:
   m_ObjectHideFlags: 0

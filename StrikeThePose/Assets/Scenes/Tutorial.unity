@@ -3251,17 +3251,23 @@ MonoBehaviour:
   losePanel: {fileID: 871554671}
   loseMissesText: {fileID: 614011557}
   loseRetryButton: {fileID: 639145561}
+  difficultyPanel: {fileID: 0}
+  easyButton: {fileID: 0}
+  normalButton: {fileID: 0}
+  hardButton: {fileID: 0}
   tutorialPanel: {fileID: 1139805535}
   tutorialText: {fileID: 1503246225}
   tutorialStartButton: {fileID: 510345470}
   tutorialHintText: {fileID: 1707032327}
   tutorialHintBackground: {fileID: 0}
-  obstacleSpawner: {fileID: 1695447762}
+  bonusAreaBanner: {fileID: 0}
+  bonusPointsFeedbackText: {fileID: 0}
   pausePanel: {fileID: 2740609}
   resumeButton: {fileID: 922707066}
   restartButton: {fileID: 412944871}
   menuButton: {fileID: 1643561503}
   mainMenuSceneName: MainMenu
+  obstacleSpawner: {fileID: 1695447762}
   musicSource: {fileID: 1524544575}
 --- !u!114 &1176969239
 MonoBehaviour:
@@ -3947,6 +3953,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   animator: {fileID: 1304220071}
+  bonusInputCooldown: 0.15
 --- !u!114 &1509237972
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3963,7 +3970,6 @@ MonoBehaviour:
   xMin: -4
   xMax: 4
   mainCamera: {fileID: 330585545}
-  poseController: {fileID: 1509237971}
 --- !u!23 &1509237974
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -4106,7 +4112,7 @@ AudioSource:
   m_Enabled: 1
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
-  m_audioClip: {fileID: 8300000, guid: 4e773f29f3f30254da4f91cb18402287, type: 3}
+  m_audioClip: {fileID: 8300000, guid: 06c1995832e2c1640ad4845b490d18ee, type: 3}
   m_PlayOnAwake: 0
   m_Volume: 0.29
   m_Pitch: 1
@@ -4956,6 +4962,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   beatMap: {fileID: 11400000, guid: 068f152fdab20b344905b933468fcc15, type: 2}
+  easyBeatMap: {fileID: 0}
+  normalBeatMap: {fileID: 0}
+  hardBeatMap: {fileID: 0}
   obstaclePrefab: {fileID: 7152870051796700565, guid: 03b78d4b2cbd78741803df5103cae2e5,
     type: 3}
   player: {fileID: 1509237971}
@@ -4963,7 +4972,16 @@ MonoBehaviour:
   spawnZ: -15
   holeXMin: -4
   holeXMax: 4
-  obstacleSpeed: 8
+  easySpeed: 6
+  normalSpeed: 8
+  hardSpeed: 11
+  easyEarlyWindow: 0.6
+  easyLateWindow: 0.45
+  normalEarlyWindow: 0.4
+  normalLateWindow: 0.3
+  hardEarlyWindow: 0.28
+  hardLateWindow: 0.21
+  fakeObstacleChance: 0.25
   tutorialObstacleCount: 10
 --- !u!4 &1695447763
 Transform:
