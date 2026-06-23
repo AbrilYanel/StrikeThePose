@@ -19,8 +19,20 @@ public class UIManager : MonoBehaviour
     [SerializeField] private TextMeshProUGUI livesText;
 
     [Header("Feedback de acierto/fallo")]
-    [SerializeField] private TextMeshProUGUI feedbackText;
+    [Tooltip("Imagen donde se muestra el feedback (reemplaza al texto)")]
+    [SerializeField] private Image feedbackImage;
     [SerializeField] private float feedbackDuration = 0.7f;
+    [Header("Sprites de acierto")]
+    [Tooltip("Imágenes que aparecen al ACERTAR (se elige una aleatoria)")]
+    [SerializeField] private Sprite[] hitSprites;
+    [Header("Sprites de fallo")]
+    [Tooltip("Imágenes que aparecen al FALLAR (se elige una aleatoria)")]
+    [SerializeField] private Sprite[] missSprites;
+    [Header("Colores de feedback (tintan la imagen)")]
+    [SerializeField] private Color hitTint = new Color(0.2f, 1f, 0.4f);
+    [SerializeField] private Color missTint = new Color(1f, 0.25f, 0.25f);
+    [Tooltip("Multiplicador de tamaño para la imagen de feedback (1 = tamaño del Rect Transform)")]
+    [SerializeField] private float feedbackBaseScale = 2f;
 
     [Header("Panel de victoria")]
     [SerializeField] private GameObject winPanel;
@@ -68,17 +80,16 @@ public class UIManager : MonoBehaviour
     [SerializeField] private ObstacleSpawner obstacleSpawner;
     [SerializeField] private AudioSource musicSource;
 
-    // ── Mensajes de feedback ──────────────────────────────────────────────────
-    private static readonly string[] HitMessages = { "PERFECTO!", "BIEN!", "GENIAL!" };
-    private static readonly string[] MissMessages = { "MISS", "TARDE", "INCORRECTO", "NOPE" };
-
     private Coroutine _feedbackCoroutine;
     private Coroutine _bonusFeedbackCoroutine;
+
     public bool IsTutorialHintActive { get; private set; } = false;
+
     private bool _isPaused = false;
     private bool _gameStarted = false;
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
+
     private void Start()
     {
         // Activación inicial de paneles de forma segura
@@ -86,6 +97,7 @@ public class UIManager : MonoBehaviour
         losePanel?.SetActive(false);
         pausePanel?.SetActive(false);
         tutorialPanel?.SetActive(false);
+
         if (bonusAreaBanner != null) bonusAreaBanner.SetActive(false);
         if (bonusPointsFeedbackText != null) bonusPointsFeedbackText.gameObject.SetActive(false);
 
@@ -110,12 +122,10 @@ public class UIManager : MonoBehaviour
         }
 
         // Ocultar elementos de gameplay
-        if (feedbackText != null)
-            feedbackText.gameObject.SetActive(false);
-
+        if (feedbackImage != null)
+            feedbackImage.gameObject.SetActive(false);
         if (tutorialHintText != null)
             tutorialHintText.gameObject.SetActive(false);
-
         if (tutorialHintBackground != null)
             tutorialHintBackground.SetActive(false);
 
@@ -157,7 +167,6 @@ public class UIManager : MonoBehaviour
         {
             if (GameManager.Instance.OnGameOverEvent != null)
                 GameManager.Instance.OnGameOverEvent.AddListener(ShowLosePanel);
-
             if (GameManager.Instance.OnGameWonEvent != null)
                 GameManager.Instance.OnGameWonEvent.AddListener(ShowWinPanel);
         }
@@ -178,7 +187,7 @@ public class UIManager : MonoBehaviour
         if (_isPaused) return;
 
         if (scoreText != null)
-            scoreText.text = $"Puntos: {GameManager.Instance.Score}";
+            scoreText.text = GameManager.Instance.Score.ToString("D7");
 
         if (comboText != null)
             comboText.text = GameManager.Instance.Combo > 1
@@ -193,6 +202,7 @@ public class UIManager : MonoBehaviour
     }
 
     // ── Selección de Dificultad ───────────────────────────────────────────────
+
     private void SelectDifficulty(Difficulty difficulty)
     {
         Debug.Log($"[UIManager] Procesando selección de dificultad: {difficulty}");
@@ -223,6 +233,7 @@ public class UIManager : MonoBehaviour
     }
 
     // ── Área Bonus ────────────────────────────────────────────────────────────
+
     public void ShowBonusAreaUI(bool active)
     {
         if (bonusAreaBanner != null)
@@ -265,6 +276,7 @@ public class UIManager : MonoBehaviour
     }
 
     // ── Pausa ─────────────────────────────────────────────────────────────────
+
     private void PauseGame()
     {
         _isPaused = true;
@@ -288,6 +300,7 @@ public class UIManager : MonoBehaviour
     }
 
     // ── Tutorial hint ─────────────────────────────────────────────────────────
+
     public void ShowTutorialHint(PoseType pose)
     {
         if (tutorialHintText == null) return;
@@ -332,61 +345,78 @@ public class UIManager : MonoBehaviour
     {
         if (tutorialHintText != null)
             tutorialHintText.gameObject.SetActive(false);
-
         if (tutorialHintBackground != null)
             tutorialHintBackground.SetActive(false);
-
         IsTutorialHintActive = false;
     }
 
-    // ── Feedback de hit/miss ──────────────────────────────────────────────────
+    // ── Feedback de hit/miss (IMAGEN) ─────────────────────────────────────────
+
     public void ShowHitFeedback(bool success)
     {
-        if (feedbackText == null) return;
+        if (feedbackImage == null) return;
+
+        // Elegir sprite aleatorio según resultado
+        Sprite[] pool = success ? hitSprites : missSprites;
+        if (pool == null || pool.Length == 0)
+        {
+            Debug.LogWarning($"[UIManager] No hay sprites de feedback asignados para {(success ? "ACIERTO" : "FALLO")}.");
+            return;
+        }
+
+        Sprite chosen = pool[Random.Range(0, pool.Length)];
+        feedbackImage.sprite = chosen;
+
+        // Tintar la imagen
+        feedbackImage.color = success ? hitTint : missTint;
 
         if (_feedbackCoroutine != null)
             StopCoroutine(_feedbackCoroutine);
 
-        _feedbackCoroutine = StartCoroutine(FeedbackRoutine(success));
+        _feedbackCoroutine = StartCoroutine(FeedbackRoutine());
 
         if (success && CameraEffects.Instance != null)
             CameraEffects.Instance.PlaySuccessFeedback();
     }
 
-    private IEnumerator FeedbackRoutine(bool success)
+    private IEnumerator FeedbackRoutine()
     {
-        feedbackText.gameObject.SetActive(true);
-        feedbackText.text = success
-            ? HitMessages[Random.Range(0, HitMessages.Length)]
-            : MissMessages[Random.Range(0, MissMessages.Length)];
+        feedbackImage.gameObject.SetActive(true);
 
-        feedbackText.color = success
-            ? new Color(0.2f, 1f, 0.4f)
-            : new Color(1f, 0.25f, 0.25f);
+        // Asegurar alpha completo al inicio
+        Color baseColor = feedbackImage.color;
+        baseColor.a = 1f;
+        feedbackImage.color = baseColor;
 
         float elapsed = 0f;
-        Vector3 startSc = Vector3.one * 1.3f;
-        feedbackText.transform.localScale = startSc;
+        Vector3 startSc = Vector3.one * feedbackBaseScale * 1.3f;
+        Vector3 endSc = Vector3.one * feedbackBaseScale;
+        feedbackImage.transform.localScale = startSc;
 
         while (elapsed < feedbackDuration)
         {
             elapsed += Time.deltaTime;
             float t = elapsed / feedbackDuration;
-            feedbackText.transform.localScale = Vector3.Lerp(startSc, Vector3.one, t);
 
-            Color c = feedbackText.color;
-            feedbackText.color = new Color(c.r, c.g, c.b, Mathf.Lerp(1f, 0f, t));
+            // Escala: de 1.3×base → 1.0×base
+            feedbackImage.transform.localScale = Vector3.Lerp(startSc, endSc, t);
+
+            // Fade out: alpha de 1 → 0
+            Color c = feedbackImage.color;
+            feedbackImage.color = new Color(c.r, c.g, c.b, Mathf.Lerp(1f, 0f, t));
+
             yield return null;
         }
 
-        feedbackText.gameObject.SetActive(false);
+        feedbackImage.gameObject.SetActive(false);
     }
 
     // ── Paneles de resultado ──────────────────────────────────────────────────
+
     private void ShowWinPanel(int score, int maxCombo)
     {
         winPanel?.SetActive(true);
-        if (winScoreText != null) winScoreText.text = $"Puntuación: {score}";
+        if (winScoreText != null) winScoreText.text = score.ToString("D7");
         if (winComboText != null) winComboText.text = $"Combo máximo: {maxCombo}x";
     }
 
