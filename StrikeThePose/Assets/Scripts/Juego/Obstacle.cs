@@ -10,6 +10,50 @@ public class Obstacle : MonoBehaviour
     [SerializeField] private Transform wallRight;
     [SerializeField] private BoxCollider holeZoneTrigger;
 
+    [Header("Visual de pose en el hueco")]
+    [Tooltip("Prefab que se muestra en el hueco cuando la pose requerida es PoseA / W")]
+    [SerializeField] private GameObject poseAPrefab;
+    [Tooltip("Prefab que se muestra en el hueco cuando la pose requerida es PoseB / A")]
+    [SerializeField] private GameObject poseBPrefab;
+    [Tooltip("Prefab que se muestra en el hueco cuando la pose requerida es PoseC / S")]
+    [SerializeField] private GameObject poseCPrefab;
+    [Tooltip("Prefab que se muestra en el hueco cuando la pose requerida es PoseD / D")]
+    [SerializeField] private GameObject poseDPrefab;
+
+    [Header("Visual de poses combinadas")]
+    [SerializeField] private GameObject poseABPrefab;
+    [SerializeField] private GameObject poseADPrefab;
+    [SerializeField] private GameObject poseBCPrefab;
+    [SerializeField] private GameObject poseCDPrefab;
+
+    [Header("Ajustes del visual de pose")]
+    [Tooltip("Offset local desde el inicio/centro del hueco. X se suma a HolePositionX. Z suele quedar en 0 para marcar el inicio de la nota.")]
+    [SerializeField] private Vector3 poseVisualLocalOffset = new Vector3(0f, 2.2f, 0f);
+    [Tooltip("Rotación local del prefab de pose. Útil si el FBX mira hacia otro eje.")]
+    [SerializeField] private Vector3 poseVisualLocalEuler = Vector3.zero;
+    [Tooltip("Escala local multiplicadora para el prefab de pose.")]
+    [SerializeField] private float poseVisualScale = 1f;
+
+    [Header("Visual de nota sostenida")]
+    [Tooltip("Si está activo, el prefab visual de pose se alarga desde el inicio hasta el final de la nota sostenida.")]
+    [SerializeField] private bool stretchPoseVisualOnHold = true;
+    [Tooltip("Eje local del prefab que se va a estirar. Usá Z si el FBX se alarga en profundidad; X/Y si tu modelo está orientado distinto.")]
+    [SerializeField] private HoldStretchAxis holdStretchAxis = HoldStretchAxis.Z;
+    [Tooltip("Ajuste del largo del visual sostenido. 1 = mismo largo físico que la nota. Bajalo/subilo si tu FBX tiene un tamaño base distinto.")]
+    [SerializeField] private float holdStretchMultiplier = 1f;
+
+    [Tooltip("Si está activo, el visual de pose se oculta en obstáculos fake para no revelar/trucar información.")]
+    [SerializeField] private bool hidePoseVisualOnFake = true;
+
+    private enum HoldStretchAxis
+    {
+        X,
+        Y,
+        Z
+    }
+
+    private GameObject _poseVisualInstance;
+
     [Header("Efecto de acierto")]
     [Tooltip("Prefab de partículas que aparece al acertar")]
     [SerializeField] private GameObject hitParticlePrefab;
@@ -28,17 +72,21 @@ public class Obstacle : MonoBehaviour
     [SerializeField] private float wallHeight = 4f;
     [SerializeField] private float wallDepth = 0.5f;
 
-    [Header("Colores — Poses simples")]
-    [SerializeField] private Color colorPoseA = new Color(0.2f, 0.6f, 1f);    // azul
-    [SerializeField] private Color colorPoseB = new Color(1f, 0.4f, 0.2f);   // naranja
-    [SerializeField] private Color colorPoseC = new Color(0.3f, 0.9f, 0.3f);  // verde
-    [SerializeField] private Color colorPoseD = new Color(0.9f, 0.2f, 0.8f);  // magenta
+    [Header("Color del obstáculo")]
+    [Tooltip("Color neutro de las paredes. La pose ahora se comunica con el prefab del hueco, no con el color.")]
+    [SerializeField] private Color wallNeutralColor = new Color(0.85f, 0.85f, 0.85f, 1f);
+    [SerializeField] private Color fakeWallColor = new Color(0.25f, 0.25f, 0.25f, 1f);
+    [SerializeField] private Color holdWallColor = new Color(1f, 1f, 1f, 1f);
 
-    [Header("Colores — Poses combinadas")]
-    [SerializeField] private Color colorPoseAB = new Color(0.6f, 0.3f, 1f);   // violeta  (W+A)
-    [SerializeField] private Color colorPoseAD = new Color(1f, 0.9f, 0.1f);   // amarillo (W+D)
-    [SerializeField] private Color colorPoseBC = new Color(0.1f, 0.9f, 0.9f); // cyan     (A+S)
-    [SerializeField] private Color colorPoseCD = new Color(1f, 0.5f, 0.7f);   // rosa     (S+D)
+    [Header("Colores legacy para partículas")]
+    [SerializeField] private Color colorPoseA = new Color(0.2f, 0.6f, 1f);
+    [SerializeField] private Color colorPoseB = new Color(1f, 0.4f, 0.2f);
+    [SerializeField] private Color colorPoseC = new Color(0.3f, 0.9f, 0.3f);
+    [SerializeField] private Color colorPoseD = new Color(0.9f, 0.2f, 0.8f);
+    [SerializeField] private Color colorPoseAB = new Color(0.6f, 0.3f, 1f);
+    [SerializeField] private Color colorPoseAD = new Color(1f, 0.9f, 0.1f);
+    [SerializeField] private Color colorPoseBC = new Color(0.1f, 0.9f, 0.9f);
+    [SerializeField] private Color colorPoseCD = new Color(1f, 0.5f, 0.7f);
 
     [Header("Ventana de juicio")]
     [Tooltip("Segundos ANTES de la línea en los que se acepta input")]
@@ -51,11 +99,7 @@ public class Obstacle : MonoBehaviour
 
     public PoseType RequiredPose { get; private set; }
     public float HolePositionX { get; private set; }
-
-    // Propiedad para marcar si este obstáculo es falso/trampa
     public bool IsFake { get; private set; } = false;
-
-    // ── Notas Largas (Hold Notes) ─────────────────────────────────────────────
     public bool IsHold { get; private set; } = false;
     public float HoldDuration { get; private set; } = 0f;
 
@@ -69,15 +113,10 @@ public class Obstacle : MonoBehaviour
     private float _windowStartZ;
     private float _windowEndZ;
 
-    // Estados de notas largas
     private bool _isHolding = false;
     private float _holdTimer = 0f;
     private float _pointsTickTimer = 0f;
-
-    // Referencia a las partículas activas durante hold
     private GameObject _activeHoldParticles;
-
-    // Guardamos el último color aplicado para dárselo a las partículas
     private Color _appliedColor = Color.white;
 
     public void Initialize(
@@ -97,27 +136,24 @@ public class Obstacle : MonoBehaviour
         _player = player;
         IsFake = isFake;
 
-        // Notas largas
         IsHold = holdDuration > 0f;
         HoldDuration = holdDuration;
 
-        // Configuraciones dinámicas de velocidad y juicio
         moveSpeed = speed;
         earlyWindowSeconds = earlyWindow;
         lateWindowSeconds = lateWindow;
 
         _judgeLineZ = player.transform.position.z;
 
-        // Si es una nota larga, aumentamos la distancia de destrucción según su longitud física
         float physicalLength = IsHold ? (HoldDuration * moveSpeed) : 0f;
         _destroyZ = _judgeLineZ + destroyOffset + physicalLength;
         _windowStartZ = _judgeLineZ - (earlyWindowSeconds * moveSpeed);
         _windowEndZ = _judgeLineZ + (lateWindowSeconds * moveSpeed);
 
         BuildWall();
-        ApplyColor();
+        ApplyWallColor();
+        BuildPoseVisual();
 
-        // En obstáculos fake o notas largas complejas no mostramos tutorial de ayuda directo
         if (showTutorial && !IsFake && !IsHold && UIManager.Instance != null && !UIManager.Instance.IsTutorialHintActive)
         {
             _ownsHint = true;
@@ -130,40 +166,34 @@ public class Obstacle : MonoBehaviour
         transform.position += Vector3.forward * moveSpeed * Time.deltaTime;
         float z = transform.position.z;
 
-        // ── 1. LÓGICA DE NOTA LARGA ACTIVA ──
         if (_isHolding)
         {
             _holdTimer += Time.deltaTime;
 
-            // Hacer que las partículas del hold sigan al obstáculo mientras se mueve
             if (_activeHoldParticles != null)
             {
                 Vector3 followPos = new Vector3(HolePositionX, wallHeight / 2f, transform.position.z) + hitParticleOffset;
                 _activeHoldParticles.transform.position = followPos;
             }
 
-            // Comprobar si el jugador sigue en la pose requerida y dentro del hueco
             bool holdingCorrectPose = _player.CurrentPose == RequiredPose;
             bool insideHole = IsPlayerInHole(_player.transform.position.x);
 
             if (!holdingCorrectPose || !insideHole)
             {
-                // El jugador soltó el botón antes o se movió del carril -> FALLO INMEDIATO
                 _isHolding = false;
                 StopHoldParticles();
                 EvaluateResult(false);
                 return;
             }
 
-            // Otorga ráfagas de puntos (ticks) cada 0.1 segundos por mantener con éxito
             _pointsTickTimer += Time.deltaTime;
             if (_pointsTickTimer >= 0.1f)
             {
                 _pointsTickTimer = 0f;
-                GameManager.Instance?.AddBonusPoints(5); // +5 puntos por cada tick
+                GameManager.Instance?.AddBonusPoints(5);
             }
 
-            // Si se completó el tiempo requerido -> ÉXITO COMPLETO!
             if (_holdTimer >= HoldDuration)
             {
                 _isHolding = false;
@@ -173,14 +203,12 @@ public class Obstacle : MonoBehaviour
             return;
         }
 
-        // ── 2. DETECCIÓN DE ENTRADA A LA VENTANA DE JUICIO ──
         if (!_evaluated && z >= _windowStartZ && z <= _windowEndZ)
         {
             _enteredWindow = true;
 
             if (IsFake)
             {
-                // Si el obstáculo es FAKE, presionar cualquier tecla activa un fallo inmediato!
                 if (_player.CurrentPose != PoseType.Idle)
                 {
                     EvaluateResult(false);
@@ -188,7 +216,6 @@ public class Obstacle : MonoBehaviour
             }
             else
             {
-                // Comportamiento normal para obstáculos reales (y notas largas al iniciar)
                 float timeSinceInput = Time.time - _player.LastInputTime;
                 bool recentInput = timeSinceInput <= Time.deltaTime * 2f;
 
@@ -199,16 +226,10 @@ public class Obstacle : MonoBehaviour
                     {
                         if (IsHold)
                         {
-                            // Iniciar estado de retención (Holding) + partículas continuas
                             _isHolding = true;
                             _holdTimer = 0f;
                             _pointsTickTimer = 0f;
-
-                            // ════════════════════════════════════════════
-                            //  🎵 Iniciar partículas continuas para hold
-                            // ════════════════════════════════════════════
                             _activeHoldParticles = SpawnHitParticles(looping: true);
-
                             Debug.Log("[Obstacle] ¡Nota larga iniciada! Mantén presionado...");
                         }
                         else
@@ -224,23 +245,18 @@ public class Obstacle : MonoBehaviour
             }
         }
 
-        // Salió de la ventana sin que se haya evaluado
         if (!_evaluated && !_isHolding && _enteredWindow && z > _windowEndZ)
         {
             if (IsFake)
             {
-                // ¡Si el jugador esquivó con éxito (no presionó nada), cuenta como acierto!
                 EvaluateResult(true);
             }
             else
             {
-                // Si era un obstáculo real/long y no se presionó en su ventana de inicio -> Fallo
                 EvaluateResult(false);
             }
         }
 
-        // ── Destrucción al pasar el destroyZ (solo si NO fue evaluado como acierto) ──
-        // Aquí NO se instancian partículas — es el caso de "miss" o paso silencioso
         if (z >= _destroyZ)
         {
             ReleaseHint();
@@ -260,10 +276,6 @@ public class Obstacle : MonoBehaviour
 
         if (success)
         {
-            // ══════════════════════════════════════════════════════════
-            //  🎉 ACIERTO → Instanciar partículas de éxito
-            //     (Solo para notas normales; las hold ya tienen sus partículas)
-            // ══════════════════════════════════════════════════════════
             if (!IsHold)
             {
                 SpawnHitParticles(looping: false);
@@ -276,9 +288,117 @@ public class Obstacle : MonoBehaviour
         Debug.Log($"[Obstacle] {(success ? "ACIERTO" : "FALLO")} | Pose: {RequiredPose} | ¿Era Hold?: {IsHold}");
     }
 
-    // ── Spawn de partículas de acierto ────────────────────────────────────────
-    //  looping = true  → para notas largas: emisión continua hasta que se pare
-    //  looping = false → para notas normales: burst de 1 segundo
+    private void BuildPoseVisual()
+    {
+        if (IsFake && hidePoseVisualOnFake) return;
+
+        GameObject prefab = GetPosePrefab(RequiredPose);
+        if (prefab == null)
+        {
+            Debug.LogWarning($"[Obstacle] No hay prefab visual asignado para la pose {RequiredPose}.");
+            return;
+        }
+
+        Vector3 localPos = new Vector3(HolePositionX, 0f, 0f) + poseVisualLocalOffset;
+        Quaternion localRot = Quaternion.Euler(poseVisualLocalEuler);
+
+        _poseVisualInstance = Instantiate(prefab, transform);
+        _poseVisualInstance.transform.localPosition = localPos;
+        _poseVisualInstance.transform.localRotation = localRot;
+        _poseVisualInstance.transform.localScale = Vector3.one * poseVisualScale;
+
+        if (IsHold && stretchPoseVisualOnHold)
+        {
+            float holdLength = Mathf.Max(0.01f, HoldDuration * moveSpeed * holdStretchMultiplier);
+            FitHoldVisualFromStartToEnd(_poseVisualInstance, localPos.z, holdLength);
+        }
+
+        // Evita que un prefab con collider interfiera con el jugador/obstáculo.
+        foreach (Collider col in _poseVisualInstance.GetComponentsInChildren<Collider>())
+        {
+            col.enabled = false;
+        }
+    }
+
+    private GameObject GetPosePrefab(PoseType pose)
+    {
+        return pose switch
+        {
+            PoseType.PoseA => poseAPrefab,
+            PoseType.PoseB => poseBPrefab,
+            PoseType.PoseC => poseCPrefab,
+            PoseType.PoseD => poseDPrefab,
+            PoseType.PoseAB => poseABPrefab,
+            PoseType.PoseAD => poseADPrefab,
+            PoseType.PoseBC => poseBCPrefab,
+            PoseType.PoseCD => poseCDPrefab,
+            _ => null,
+        };
+    }
+
+    private void FitHoldVisualFromStartToEnd(GameObject visual, float startZ, float holdLength)
+    {
+        // Queremos que el visual completo ocupe exactamente este tramo local:
+        // inicio = startZ, final = startZ - holdLength.
+        float desiredStartZ = startZ;
+        float desiredEndZ = startZ - holdLength;
+        float desiredCenterZ = (desiredStartZ + desiredEndZ) * 0.5f;
+        float desiredDepth = Mathf.Abs(desiredStartZ - desiredEndZ);
+
+        Bounds localBounds = GetLocalBoundsRelativeToObstacle(visual);
+        float currentDepth = Mathf.Max(0.0001f, localBounds.size.z);
+        float scaleFactor = desiredDepth / currentDepth;
+
+        Vector3 scale = visual.transform.localScale;
+        switch (holdStretchAxis)
+        {
+            case HoldStretchAxis.X:
+                scale.x *= scaleFactor;
+                break;
+            case HoldStretchAxis.Y:
+                scale.y *= scaleFactor;
+                break;
+            case HoldStretchAxis.Z:
+                scale.z *= scaleFactor;
+                break;
+        }
+        visual.transform.localScale = scale;
+
+        // Tras escalar, recalculamos bounds reales y corregimos posición.
+        // Esto elimina el desfase causado por pivots centrados o meshes desplazados dentro del FBX.
+        localBounds = GetLocalBoundsRelativeToObstacle(visual);
+        float currentCenterZ = localBounds.center.z;
+        Vector3 pos = visual.transform.localPosition;
+        pos.z += desiredCenterZ - currentCenterZ;
+        visual.transform.localPosition = pos;
+    }
+
+    private Bounds GetLocalBoundsRelativeToObstacle(GameObject visual)
+    {
+        Renderer[] renderers = visual.GetComponentsInChildren<Renderer>();
+        if (renderers.Length == 0)
+            return new Bounds(visual.transform.localPosition, Vector3.one);
+
+        Bounds bounds = new Bounds(transform.InverseTransformPoint(renderers[0].bounds.center), Vector3.zero);
+
+        foreach (Renderer renderer in renderers)
+        {
+            Vector3 worldMin = renderer.bounds.min;
+            Vector3 worldMax = renderer.bounds.max;
+
+            bounds.Encapsulate(transform.InverseTransformPoint(new Vector3(worldMin.x, worldMin.y, worldMin.z)));
+            bounds.Encapsulate(transform.InverseTransformPoint(new Vector3(worldMin.x, worldMin.y, worldMax.z)));
+            bounds.Encapsulate(transform.InverseTransformPoint(new Vector3(worldMin.x, worldMax.y, worldMin.z)));
+            bounds.Encapsulate(transform.InverseTransformPoint(new Vector3(worldMin.x, worldMax.y, worldMax.z)));
+            bounds.Encapsulate(transform.InverseTransformPoint(new Vector3(worldMax.x, worldMin.y, worldMin.z)));
+            bounds.Encapsulate(transform.InverseTransformPoint(new Vector3(worldMax.x, worldMin.y, worldMax.z)));
+            bounds.Encapsulate(transform.InverseTransformPoint(new Vector3(worldMax.x, worldMax.y, worldMin.z)));
+            bounds.Encapsulate(transform.InverseTransformPoint(new Vector3(worldMax.x, worldMax.y, worldMax.z)));
+        }
+
+        return bounds;
+    }
+
     private GameObject SpawnHitParticles(bool looping = false)
     {
         if (hitParticlePrefab == null)
@@ -287,46 +407,32 @@ public class Obstacle : MonoBehaviour
             return null;
         }
 
-        // Posición central del hueco (donde estaba el "agujero" que el jugador atravesó)
         Vector3 spawnPos = new Vector3(HolePositionX, wallHeight / 2f, transform.position.z) + hitParticleOffset;
-
         GameObject particles = Instantiate(hitParticlePrefab, spawnPos, Quaternion.identity);
-
-        // Aplicar escala
         particles.transform.localScale = Vector3.one * hitParticleScale;
 
-        // ── Configurar cada ParticleSystem ──
         ParticleSystem[] psArray = particles.GetComponentsInChildren<ParticleSystem>();
         foreach (var ps in psArray)
         {
             var main = ps.main;
-
-            // Tintar con el color del obstáculo
             Color targetColor = _appliedColor;
             targetColor.a = main.startColor.color.a;
             main.startColor = new ParticleSystem.MinMaxGradient(targetColor);
 
             if (looping)
             {
-                // ── Modo hold: emisión continua ──
                 main.loop = true;
-                // Prewarm = true hace que las partículas aparezcan al instante
                 main.prewarm = true;
             }
             else
             {
-                // ── Modo normal: burst que se apaga ──
                 main.loop = false;
-                // Simular hacia adelante para que aparezca instantáneamente
-                // (prewarm no funciona bien en runtime con loop=false)
                 ps.Simulate(hitParticlePrewarmTime, true, true, false);
             }
 
-            // Asegurarse de que esté reproduciéndose
             ps.Play(true);
         }
 
-        // Auto-destruir las partículas (para hold se destruye manualmente via StopHoldParticles)
         if (!looping)
         {
             Destroy(particles, hitParticleDuration);
@@ -335,7 +441,6 @@ public class Obstacle : MonoBehaviour
         return particles;
     }
 
-    // ── Detener partículas de hold y dejar que se desvanezcan ────────────────
     private void StopHoldParticles()
     {
         if (_activeHoldParticles == null) return;
@@ -346,7 +451,6 @@ public class Obstacle : MonoBehaviour
             ps.Stop(true, ParticleSystemStopBehavior.StopEmitting);
         }
 
-        // Destruir el objeto de partículas después de que se desvanezcan
         Destroy(_activeHoldParticles, hitParticleDuration);
         _activeHoldParticles = null;
     }
@@ -378,7 +482,6 @@ public class Obstacle : MonoBehaviour
         float leftWidth = leftEnd - leftOrigin;
         float rightWidth = rightEnd - rightStart;
 
-        // Si es una nota larga, su grosor físico en Z representa el largo que debe sostenerse
         float currentDepth = wallDepth;
         if (IsHold)
         {
@@ -404,9 +507,36 @@ public class Obstacle : MonoBehaviour
         }
     }
 
-    private void ApplyColor()
+    private void ApplyWallColor()
     {
-        Color c = RequiredPose switch
+        // Este color se conserva para partículas. Las paredes ahora son neutras.
+        _appliedColor = GetPoseColor(RequiredPose);
+
+        Color wallColor = wallNeutralColor;
+        if (IsFake)
+        {
+            wallColor = fakeWallColor;
+        }
+        else if (IsHold)
+        {
+            wallColor = holdWallColor;
+        }
+
+        ApplyColorToTransform(wallLeft, wallColor);
+        ApplyColorToTransform(wallRight, wallColor);
+    }
+
+    private void ApplyColorToTransform(Transform target, Color color)
+    {
+        if (target == null) return;
+
+        foreach (MeshRenderer mr in target.GetComponentsInChildren<MeshRenderer>())
+            mr.material.color = color;
+    }
+
+    private Color GetPoseColor(PoseType pose)
+    {
+        return pose switch
         {
             PoseType.PoseA => colorPoseA,
             PoseType.PoseB => colorPoseB,
@@ -418,21 +548,6 @@ public class Obstacle : MonoBehaviour
             PoseType.PoseCD => colorPoseCD,
             _ => Color.white,
         };
-
-        if (IsFake)
-        {
-            c = new Color(c.r * 0.35f, c.g * 0.35f, c.b * 0.35f, c.a);
-        }
-        else if (IsHold)
-        {
-            c = new Color(Mathf.Min(c.r * 1.3f, 1f), Mathf.Min(c.g * 1.3f, 1f), Mathf.Min(c.b * 1.3f, 1f), c.a);
-        }
-
-        // Guardamos el color para usarlo en las partículas
-        _appliedColor = c;
-
-        foreach (var mr in GetComponentsInChildren<MeshRenderer>())
-            mr.material.color = c;
     }
 
     private void OnDrawGizmos()
