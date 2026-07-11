@@ -183,12 +183,11 @@ public class Obstacle : MonoBehaviour
 
             if (_activeHoldParticles != null)
             {
-                Vector3 followPos = new Vector3(HolePositionX, wallHeight / 2f, transform.position.z) + hitParticleOffset;
-                _activeHoldParticles.transform.position = followPos;
+                _activeHoldParticles.transform.position = GetHoleWorldPosition();
             }
 
             bool holdingCorrectPose = _player.CurrentPose == RequiredPose;
-            bool insideHole = IsPlayerInHole(_player.transform.position.x);
+            bool insideHole = IsPlayerInHole();
 
             if (!holdingCorrectPose || !insideHole)
             {
@@ -232,7 +231,7 @@ public class Obstacle : MonoBehaviour
 
                 if (recentInput && _player.LastInputPose == RequiredPose)
                 {
-                    bool posOk = IsPlayerInHole(_player.transform.position.x);
+                    bool posOk = IsPlayerInHole();
                     if (posOk)
                     {
                         if (IsHold)
@@ -418,7 +417,7 @@ public class Obstacle : MonoBehaviour
             return null;
         }
 
-        Vector3 spawnPos = new Vector3(HolePositionX, wallHeight / 2f, transform.position.z) + hitParticleOffset;
+        Vector3 spawnPos = GetHoleWorldPosition();
         GameObject particles = Instantiate(hitParticlePrefab, spawnPos, Quaternion.identity);
         particles.transform.localScale = Vector3.one * hitParticleScale;
         TrackLayerUtility.SetLayerRecursively(particles, _renderLayer);
@@ -478,10 +477,38 @@ public class Obstacle : MonoBehaviour
 
     private void OnDestroy() => ReleaseHint();
 
-    private bool IsPlayerInHole(float playerX)
+    /// <summary>
+    /// Convierte la posición mundial del jugador al espacio local del obstáculo.
+    /// Así la comprobación funciona aunque Track_P1 y Track_P2 estén desplazados
+    /// físicamente en el mundo.
+    /// </summary>
+    private bool IsPlayerInHole()
     {
+        if (_player == null)
+            return false;
+
+        float playerLocalX =
+            transform.InverseTransformPoint(_player.transform.position).x;
+
         float half = holeWidth / 2f;
-        return playerX >= HolePositionX - half && playerX <= HolePositionX + half;
+
+        return playerLocalX >= HolePositionX - half &&
+               playerLocalX <= HolePositionX + half;
+    }
+
+    /// <summary>
+    /// Obtiene el centro mundial del hueco partiendo de coordenadas locales.
+    /// También evita que las partículas de P2 aparezcan en la pista de P1.
+    /// </summary>
+    private Vector3 GetHoleWorldPosition()
+    {
+        Vector3 localPosition = new Vector3(
+            HolePositionX,
+            wallHeight / 2f,
+            0f
+        ) + hitParticleOffset;
+
+        return transform.TransformPoint(localPosition);
     }
 
     private void BuildWall()

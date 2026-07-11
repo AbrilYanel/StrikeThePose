@@ -1,52 +1,55 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 
+/// <summary>
+/// Spawner maestro del modo 1v1. Lee un único Beatmap y, por cada evento,
+/// genera una copia equivalente para P1 y otra para P2.
+/// </summary>
 public class ObstacleSpawner : MonoBehaviour
 {
     [Header("Datos rítmicos (Default / Normal)")]
     [SerializeField] private Beatmap beatMap;
 
     [Header("Dificultades (Opcionales)")]
-    [Tooltip("Asigna aquí un Beatmap simplificado si lo tienes")]
     [SerializeField] private Beatmap easyBeatMap;
-    [Tooltip("Asigna aquí el Beatmap por defecto")]
     [SerializeField] private Beatmap normalBeatMap;
-    [Tooltip("Asigna aquí un Beatmap de alta dificultad si lo tienes")]
     [SerializeField] private Beatmap hardBeatMap;
 
     [Header("Prefab")]
     [SerializeField] private GameObject obstaclePrefab;
 
-    [Header("Referencias")]
-    [SerializeField] private PoseController player;
-    [SerializeField] private GameManager gameManager;
-    [SerializeField] private UIManager uiManager;
+    [Header("Jugador 1")]
+    [SerializeField] private PoseController player1;
+    [SerializeField] private GameManager gameManager1;
+    [SerializeField] private UIManager uiManager1;
+    [SerializeField] private Transform obstacleParent1;
+    [SerializeField] private string player1LayerName = "Track_P1";
+
+    [Header("Jugador 2")]
+    [SerializeField] private PoseController player2;
+    [SerializeField] private GameManager gameManager2;
+    [SerializeField] private UIManager uiManager2;
+    [SerializeField] private Transform obstacleParent2;
+    [SerializeField] private string player2LayerName = "Track_P2";
+
+    [Header("Música compartida")]
     [SerializeField] private AudioSource musicSource;
 
-    [Header("Configuración de pista (Paso 3)")]
-    [Tooltip("Padre que recibirá los obstáculos de esta pista.")]
-    [SerializeField] private Transform obstacleParent;
-    [Tooltip("Layer exclusiva de esta pista: Track_P1 o Track_P2.")]
-    [SerializeField] private string trackLayerName = "Track_P1";
-    [Tooltip("Sólo el spawner P1 debe iniciar la música compartida.")]
-    [SerializeField] private bool controlsMusicPlayback = true;
-    [Tooltip("En la prueba 1v1 debe quedar desactivado para no cortar la canción compartida si un jugador pierde.")]
-    [SerializeField] private bool stopMusicOnGameOver = false;
-
-    [Header("Posición de spawn")]
+    [Header("Posición de spawn local")]
     [SerializeField] private float spawnZ = -20f;
 
     [Header("Límites del hueco aleatorio")]
     [SerializeField] private float holeXMin = -4f;
     [SerializeField] private float holeXMax = 4f;
 
-    [Header("Velocidad del obstáculo por Dificultad")]
+    [Header("Velocidad del obstáculo por dificultad")]
     [SerializeField] private float easySpeed = 6f;
     [SerializeField] private float normalSpeed = 8f;
     [SerializeField] private float hardSpeed = 11f;
 
-    [Header("Ventanas de Juicio por Dificultad")]
+    [Header("Ventanas de juicio por dificultad")]
     [SerializeField] private float easyEarlyWindow = 0.6f;
     [SerializeField] private float easyLateWindow = 0.45f;
     [SerializeField] private float normalEarlyWindow = 0.4f;
@@ -54,81 +57,119 @@ public class ObstacleSpawner : MonoBehaviour
     [SerializeField] private float hardEarlyWindow = 0.28f;
     [SerializeField] private float hardLateWindow = 0.21f;
 
-    [Header("Obstáculos Fake (Sólo Difícil)")]
-    [Tooltip("Probabilidad de que un obstáculo sea falso/trampa en dificultad difícil (de 0 a 1)")]
+    [Header("Obstáculos fake (sólo difícil)")]
     [Range(0f, 1f)]
     [SerializeField] private float fakeObstacleChance = 0.25f;
 
     [Header("Tutorial")]
-    [Tooltip("Cuántos obstáculos al inicio llevan texto de tutorial")]
-    [SerializeField] public int tutorialObstacleCount = 10;
+    [SerializeField] private int tutorialObstacleCount = 10;
 
-    // Variables de configuración de velocidad y juicio actuales
+    [Header("Eventos")]
+    public UnityEvent OnSongFinishedEvent = new UnityEvent();
+
     private float obstacleSpeed = 8f;
     private float _currentEarlyWindow = 0.4f;
     private float _currentLateWindow = 0.3f;
-    private bool _isHardDifficulty = false;
+    private bool _isHardDifficulty;
 
-    // Listas separadas para evitar desfase físico
-    private List<BeatEvent> _obstacleEvents = new List<BeatEvent>();
-    private List<BeatEvent> _bonusEvents = new List<BeatEvent>();
+    private readonly List<BeatEvent> _obstacleEvents = new List<BeatEvent>();
+    private readonly List<BeatEvent> _bonusEvents = new List<BeatEvent>();
 
-    private int _nextObstacleIndex = 0;
-    private int _nextBonusIndex = 0;
-    private bool _running = false;
-    private int _spawnedCount = 0;
-    private int _trackLayer = -1;
+    private int _nextObstacleIndex;
+    private int _nextBonusIndex;
+    private int _spawnedCount;
+    private int _player1Layer = -1;
+    private int _player2Layer = -1;
 
-    // Momento real en que el juego fue iniciado por el jugador
+    private bool _running;
+    private bool _configurationValid;
     private float _gameStartRealTime = -1f;
 
     private float TravelTime => Mathf.Abs(spawnZ) / obstacleSpeed;
 
     private void Awake()
     {
-        _trackLayer = LayerMask.NameToLayer(trackLayerName);
+        _player1Layer = LayerMask.NameToLayer(player1LayerName);
+        _player2Layer = LayerMask.NameToLayer(player2LayerName);
 
-        if (_trackLayer < 0)
+        _configurationValid = ValidateConfiguration();
+
+        if (!_configurationValid)
+            return;
+
+        if (normalBeatMap == null)
+            normalBeatMap = beatMap;
+
+        if (easyBeatMap == null)
+            easyBeatMap = beatMap;
+
+        if (hardBeatMap == null)
+            hardBeatMap = beatMap;
+
+        InitializeBeatmap(normalBeatMap);
+
+        Debug.Log(
+            $"[MasterSpawner] Configurado. TravelTime: {TravelTime:F2}s | " +
+            $"P1 Layer: {player1LayerName} | P2 Layer: {player2LayerName}"
+        );
+    }
+
+    private bool ValidateConfiguration()
+    {
+        bool valid = true;
+
+        if (beatMap == null && easyBeatMap == null &&
+            normalBeatMap == null && hardBeatMap == null)
+        {
+            Debug.LogError("[MasterSpawner] No se asignó ningún Beatmap.", this);
+            valid = false;
+        }
+
+        if (obstaclePrefab == null)
+        {
+            Debug.LogError("[MasterSpawner] Falta el prefab de obstáculo.", this);
+            valid = false;
+        }
+
+        if (player1 == null || gameManager1 == null || uiManager1 == null ||
+            obstacleParent1 == null)
+        {
+            Debug.LogError("[MasterSpawner] Faltan referencias de P1.", this);
+            valid = false;
+        }
+
+        if (player2 == null || gameManager2 == null || uiManager2 == null ||
+            obstacleParent2 == null)
+        {
+            Debug.LogError("[MasterSpawner] Faltan referencias de P2.", this);
+            valid = false;
+        }
+
+        if (_player1Layer < 0 || _player2Layer < 0)
         {
             Debug.LogError(
-                $"[ObstacleSpawner] La layer '{trackLayerName}' no existe. Creala en Tags and Layers.",
+                "[MasterSpawner] No existen las layers Track_P1 y/o Track_P2.",
                 this
             );
+            valid = false;
         }
+
+        return valid;
     }
 
-    private void Start()
-    {
-        Debug.Log($"[Spawner] BeatMap: {beatMap} | Prefab: {obstaclePrefab} | Player: {player} | TravelTime: {TravelTime:F2}s");
-
-        if (beatMap == null && easyBeatMap == null && normalBeatMap == null && hardBeatMap == null)
-        {
-            Debug.LogError("[ObstacleSpawner] No se asignó ningún Beatmap en el Inspector.");
-            return;
-        }
-
-        if (obstaclePrefab == null || player == null || gameManager == null || uiManager == null)
-        {
-            Debug.LogError("[ObstacleSpawner] Falta asignar referencias críticas (Prefab/Player/GameManager/UIManager) en el Inspector.");
-            return;
-        }
-
-        // Si no se asignó nada en dificultades específicas, rellenamos con el default
-        if (normalBeatMap == null) normalBeatMap = beatMap;
-        if (easyBeatMap == null) easyBeatMap = beatMap;
-        if (hardBeatMap == null) hardBeatMap = beatMap;
-
-        // Por seguridad, inicializamos con el beatmap por defecto hasta que se elija uno.
-        InitializeBeatmap(normalBeatMap);
-    }
-
-    /// <summary>
-    /// Configura las variables rítmicas del Spawner en base a la dificultad seleccionada.
-    /// </summary>
     public void SetDifficulty(Difficulty difficulty)
     {
+        if (_running)
+        {
+            Debug.LogWarning(
+                "[MasterSpawner] No se puede cambiar la dificultad durante la partida.",
+                this
+            );
+            return;
+        }
+
         Beatmap chosenMap = null;
-        _isHardDifficulty = (difficulty == Difficulty.Hard);
+        _isHardDifficulty = difficulty == Difficulty.Hard;
 
         switch (difficulty)
         {
@@ -138,12 +179,14 @@ public class ObstacleSpawner : MonoBehaviour
                 _currentEarlyWindow = easyEarlyWindow;
                 _currentLateWindow = easyLateWindow;
                 break;
+
             case Difficulty.Normal:
                 chosenMap = normalBeatMap != null ? normalBeatMap : beatMap;
                 obstacleSpeed = normalSpeed;
                 _currentEarlyWindow = normalEarlyWindow;
                 _currentLateWindow = normalLateWindow;
                 break;
+
             case Difficulty.Hard:
                 chosenMap = hardBeatMap != null ? hardBeatMap : beatMap;
                 obstacleSpeed = hardSpeed;
@@ -153,31 +196,30 @@ public class ObstacleSpawner : MonoBehaviour
         }
 
         if (chosenMap != null)
-        {
             InitializeBeatmap(chosenMap);
-        }
 
-        Debug.Log($"[Spawner] Dificultad {difficulty} cargada. Velocidad: {obstacleSpeed}. Ventana Early: {_currentEarlyWindow}s / Late: {_currentLateWindow}s. ¿Dificultad difícil?: {_isHardDifficulty}");
+        Debug.Log(
+            $"[MasterSpawner] Dificultad {difficulty}. " +
+            $"Velocidad: {obstacleSpeed}. " +
+            $"Early: {_currentEarlyWindow}s / Late: {_currentLateWindow}s"
+        );
     }
 
     private void InitializeBeatmap(Beatmap targetBeatmap)
     {
-        if (targetBeatmap == null) return;
-        beatMap = targetBeatmap;
+        if (targetBeatmap == null)
+            return;
 
+        beatMap = targetBeatmap;
         _obstacleEvents.Clear();
         _bonusEvents.Clear();
 
-        foreach (var ev in beatMap.events)
+        foreach (BeatEvent beatEvent in beatMap.events)
         {
-            if (ev.isBonusAreaStart || ev.isBonusAreaEnd)
-            {
-                _bonusEvents.Add(ev);
-            }
+            if (beatEvent.isBonusAreaStart || beatEvent.isBonusAreaEnd)
+                _bonusEvents.Add(beatEvent);
             else
-            {
-                _obstacleEvents.Add(ev);
-            }
+                _obstacleEvents.Add(beatEvent);
         }
 
         _obstacleEvents.Sort((a, b) => a.beat.CompareTo(b.beat));
@@ -190,158 +232,210 @@ public class ObstacleSpawner : MonoBehaviour
 
     public void StartGame()
     {
-        if (_running) return;
+        if (_running)
+            return;
+
+        if (!_configurationValid || beatMap == null)
+        {
+            Debug.LogError(
+                "[MasterSpawner] No se puede iniciar por una configuración inválida.",
+                this
+            );
+            return;
+        }
+
+        _running = true;
         StartCoroutine(RunSpawner());
     }
 
     private IEnumerator RunSpawner()
     {
-        if (beatMap == null)
-        {
-            Debug.LogError("[Spawner] No se puede iniciar el spawner porque no hay ningún Beatmap cargado.");
-            yield break;
-        }
-
-        // Esperar el offset inicial (con timeScale = 1)
         yield return new WaitForSeconds(beatMap.startOffsetSeconds);
 
-        // Iniciar música
-        if (controlsMusicPlayback && musicSource != null && beatMap.song != null)
+        if (musicSource != null && beatMap.song != null)
         {
             musicSource.clip = beatMap.song;
             musicSource.Play();
         }
 
-        // Guardar tiempo real de inicio para sincronización
         _gameStartRealTime = Time.time;
-        _running = true;
 
-        while (_nextObstacleIndex < _obstacleEvents.Count || _nextBonusIndex < _bonusEvents.Count)
+        while (_nextObstacleIndex < _obstacleEvents.Count ||
+               _nextBonusIndex < _bonusEvents.Count)
         {
-            if (gameManager != null && gameManager.IsGameOver)
-            {
-                if (controlsMusicPlayback && stopMusicOnGameOver)
-                    musicSource?.Stop();
-
-                yield break;
-            }
-
             float elapsed = Time.time - _gameStartRealTime;
-            float audioTime = (musicSource != null && musicSource.isPlaying)
+            float audioTime = musicSource != null && musicSource.isPlaying
                 ? musicSource.time
                 : Mathf.Max(0f, elapsed);
 
-            // ── 1. Spawneo de obstáculos físicos (Requiere desfase TravelTime) ──
-            if (_nextObstacleIndex < _obstacleEvents.Count)
-            {
-                BeatEvent ev = _obstacleEvents[_nextObstacleIndex];
-                float beatTime = beatMap.BeatToSeconds(ev.beat);
-                float spawnTime = beatTime - TravelTime;
-
-                if (audioTime >= spawnTime)
-                {
-                    SpawnObstacle(ev);
-                    _nextObstacleIndex++;
-                }
-            }
-
-            // ── 2. Activación instantánea del Área Bonus (En tiempo real, sin desfase) ──
-            if (_nextBonusIndex < _bonusEvents.Count)
-            {
-                BeatEvent ev = _bonusEvents[_nextBonusIndex];
-                float beatTime = beatMap.BeatToSeconds(ev.beat);
-
-                if (audioTime >= beatTime)
-                {
-                    if (ev.isBonusAreaStart)
-                    {
-                        gameManager?.SetBonusArea(true);
-                        Debug.Log($"[Spawner] ¡Iniciando Área Bonus en beat {ev.beat}!");
-                    }
-                    else if (ev.isBonusAreaEnd)
-                    {
-                        gameManager?.SetBonusArea(false);
-                        Debug.Log($"[Spawner] ¡Terminando Área Bonus en beat {ev.beat}!");
-                    }
-                    _nextBonusIndex++;
-                }
-            }
+            SpawnDueObstacles(audioTime);
+            ProcessDueBonusEvents(audioTime);
 
             yield return null;
         }
 
-        // Esperar a que la música termine Y no queden obstáculos en escena
         yield return new WaitUntil(() =>
             (musicSource == null || !musicSource.isPlaying) &&
-            FindObjectsByType<Obstacle>(FindObjectsSortMode.None).Length == 0);
+            AreAllTrackObstaclesGone());
 
         _running = false;
-        Debug.Log("[ObstacleSpawner] Canción terminada.");
+        gameManager1?.SetBonusArea(false);
+        gameManager2?.SetBonusArea(false);
 
-        if (gameManager != null)
-            gameManager.OnSongFinished();
+        Debug.Log("[MasterSpawner] Canción terminada.");
+        OnSongFinishedEvent?.Invoke();
     }
 
-    private void SpawnObstacle(BeatEvent ev)
+    private void SpawnDueObstacles(float audioTime)
     {
-        float holePosX = ev.IsHoleRandom
-            ? Random.Range(holeXMin, holeXMax)
-            : ev.holePositionX;
-
-        GameObject go;
-
-        if (obstacleParent != null)
+        while (_nextObstacleIndex < _obstacleEvents.Count)
         {
-            go = Instantiate(obstaclePrefab, obstacleParent);
-            go.transform.localPosition = new Vector3(0f, 0f, spawnZ);
-            go.transform.localRotation = Quaternion.identity;
+            BeatEvent beatEvent = _obstacleEvents[_nextObstacleIndex];
+            float beatTime = beatMap.BeatToSeconds(beatEvent.beat);
+            float spawnTime = beatTime - TravelTime;
+
+            if (audioTime < spawnTime)
+                break;
+
+            SpawnObstaclePair(beatEvent);
+            _nextObstacleIndex++;
         }
-        else
+    }
+
+    private void ProcessDueBonusEvents(float audioTime)
+    {
+        while (_nextBonusIndex < _bonusEvents.Count)
         {
-            Vector3 spawnPos = new Vector3(0f, 0f, spawnZ);
-            go = Instantiate(obstaclePrefab, spawnPos, Quaternion.identity);
-        }
+            BeatEvent beatEvent = _bonusEvents[_nextBonusIndex];
+            float beatTime = beatMap.BeatToSeconds(beatEvent.beat);
 
-        TrackLayerUtility.SetLayerRecursively(go, _trackLayer);
-        Obstacle obstacle = go.GetComponent<Obstacle>();
+            if (audioTime < beatTime)
+                break;
 
-        if (obstacle != null)
-        {
-            bool isTutorial = _spawnedCount < tutorialObstacleCount;
+            bool active = beatEvent.isBonusAreaStart && !beatEvent.isBonusAreaEnd;
 
-            // Decidir si es FAKE (sólo en difícil)
-            bool isFake = _isHardDifficulty && (Random.value < fakeObstacleChance);
+            gameManager1?.SetBonusArea(active);
+            gameManager2?.SetBonusArea(active);
 
-            // Determinamos si es una nota larga directamente desde la información del Beatmap
-            float holdDuration = 0f;
-            if (!isTutorial && !isFake && ev.isHoldNote)
-            {
-                holdDuration = ev.holdDuration;
-            }
-
-            obstacle.Initialize(
-                ev.requiredPose,
-                holePosX,
-                player,
-                obstacleSpeed,
-                _currentEarlyWindow,
-                _currentLateWindow,
-                isTutorial,
-                isFake,
-                holdDuration,
-                gameManager,
-                uiManager,
-                _trackLayer
+            Debug.Log(
+                active
+                    ? $"[MasterSpawner] Inicia Área Bonus en beat {beatEvent.beat}."
+                    : $"[MasterSpawner] Termina Área Bonus en beat {beatEvent.beat}."
             );
+
+            _nextBonusIndex++;
         }
+    }
+
+    private void SpawnObstaclePair(BeatEvent beatEvent)
+    {
+        // Todos los valores aleatorios se calculan una sola vez para que ambos
+        // jugadores reciban exactamente el mismo desafío.
+        float holePosX = beatEvent.IsHoleRandom
+            ? Random.Range(holeXMin, holeXMax)
+            : beatEvent.holePositionX;
+
+        bool isTutorial = _spawnedCount < tutorialObstacleCount;
+        bool isFake = _isHardDifficulty && Random.value < fakeObstacleChance;
+
+        float holdDuration = 0f;
+        if (!isTutorial && !isFake && beatEvent.isHoldNote)
+            holdDuration = beatEvent.holdDuration;
+
+        SpawnForPlayer(
+            beatEvent,
+            holePosX,
+            isTutorial,
+            isFake,
+            holdDuration,
+            player1,
+            gameManager1,
+            uiManager1,
+            obstacleParent1,
+            _player1Layer
+        );
+
+        SpawnForPlayer(
+            beatEvent,
+            holePosX,
+            isTutorial,
+            isFake,
+            holdDuration,
+            player2,
+            gameManager2,
+            uiManager2,
+            obstacleParent2,
+            _player2Layer
+        );
 
         _spawnedCount++;
     }
 
+    private void SpawnForPlayer(
+        BeatEvent beatEvent,
+        float holePosX,
+        bool isTutorial,
+        bool isFake,
+        float holdDuration,
+        PoseController player,
+        GameManager gameManager,
+        UIManager uiManager,
+        Transform obstacleParent,
+        int renderLayer)
+    {
+        GameObject obstacleObject = Instantiate(obstaclePrefab, obstacleParent);
+        obstacleObject.transform.localPosition = new Vector3(0f, 0f, spawnZ);
+        obstacleObject.transform.localRotation = Quaternion.identity;
+
+        TrackLayerUtility.SetLayerRecursively(obstacleObject, renderLayer);
+
+        Obstacle obstacle = obstacleObject.GetComponent<Obstacle>();
+        if (obstacle == null)
+        {
+            Debug.LogError(
+                "[MasterSpawner] El prefab no contiene el componente Obstacle.",
+                obstacleObject
+            );
+            Destroy(obstacleObject);
+            return;
+        }
+
+        obstacle.Initialize(
+            beatEvent.requiredPose,
+            holePosX,
+            player,
+            obstacleSpeed,
+            _currentEarlyWindow,
+            _currentLateWindow,
+            isTutorial,
+            isFake,
+            holdDuration,
+            gameManager,
+            uiManager,
+            renderLayer
+        );
+    }
+
+    private bool AreAllTrackObstaclesGone()
+    {
+        bool player1Clear =
+            obstacleParent1.GetComponentsInChildren<Obstacle>().Length == 0;
+
+        bool player2Clear =
+            obstacleParent2.GetComponentsInChildren<Obstacle>().Length == 0;
+
+        return player1Clear && player2Clear;
+    }
+
     public void SetPaused(bool paused)
     {
-        if (paused) StopAllCoroutines();
-        else StartCoroutine(RunSpawner());
+        if (musicSource == null)
+            return;
+
+        if (paused)
+            musicSource.Pause();
+        else
+            musicSource.UnPause();
     }
 
 #if UNITY_EDITOR
@@ -350,41 +444,49 @@ public class ObstacleSpawner : MonoBehaviour
     {
         if (beatMap == null)
         {
-            Debug.LogError("[Spawner] No hay un Beatmap asignado.");
+            Debug.LogError("[MasterSpawner] No hay un Beatmap asignado.");
             return;
         }
 
-        if (musicSource == null || musicSource.clip == null)
+        AudioClip clip = beatMap.song != null
+            ? beatMap.song
+            : musicSource != null ? musicSource.clip : null;
+
+        if (clip == null)
         {
-            Debug.LogError("[Spawner] No hay AudioSource con Clip asignado.");
+            Debug.LogError("[MasterSpawner] No hay un AudioClip asignado.");
             return;
         }
 
         UnityEditor.Undo.RecordObject(beatMap, "Generar BeatMap Completo");
         beatMap.events.Clear();
 
-        float songDuration = musicSource.clip.length;
         float beatsPerSecond = beatMap.bpm / 60f;
-        int totalBeats = Mathf.FloorToInt(songDuration * beatsPerSecond);
-
-        PoseType[] poses = { PoseType.PoseA, PoseType.PoseB, PoseType.PoseC, PoseType.PoseD };
-
-        for (int i = 1; i <= totalBeats; i++)
+        int totalBeats = Mathf.FloorToInt(clip.length * beatsPerSecond);
+        PoseType[] poses =
         {
-            if (i % 4 == 0)
+            PoseType.PoseA,
+            PoseType.PoseB,
+            PoseType.PoseC,
+            PoseType.PoseD
+        };
+
+        for (int beat = 1; beat <= totalBeats; beat++)
+        {
+            if (beat % 4 != 0)
+                continue;
+
+            beatMap.events.Add(new BeatEvent
             {
-                beatMap.events.Add(new BeatEvent
-                {
-                    beat = i,
-                    requiredPose = poses[Random.Range(0, poses.Length)],
-                    holePositionX = -999f
-                });
-            }
+                beat = beat,
+                requiredPose = poses[Random.Range(0, poses.Length)],
+                holePositionX = -999f
+            });
         }
 
         UnityEditor.EditorUtility.SetDirty(beatMap);
         UnityEditor.AssetDatabase.SaveAssets();
-        Debug.Log($"[Spawner] Generados {beatMap.events.Count} obstáculos.");
+        Debug.Log($"[MasterSpawner] Generados {beatMap.events.Count} obstáculos.");
     }
 #endif
 }

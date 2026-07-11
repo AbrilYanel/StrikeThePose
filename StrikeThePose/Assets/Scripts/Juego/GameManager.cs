@@ -1,6 +1,10 @@
 ﻿using UnityEngine;
 using UnityEngine.Events;
 
+/// <summary>
+/// Estado y puntuación de un único jugador.
+/// En 1v1 debe existir una instancia separada para P1 y otra para P2.
+/// </summary>
 public class GameManager : MonoBehaviour
 {
     public int Score { get; private set; }
@@ -8,13 +12,12 @@ public class GameManager : MonoBehaviour
     public int MaxCombo { get; private set; }
     public int Lives { get; private set; }
 
-
     public Difficulty CurrentDifficulty { get; private set; } = Difficulty.Normal;
+    public bool IsInBonusArea { get; private set; }
+    public bool IsEliminated { get; private set; }
+    public bool IsMatchFinished { get; private set; }
 
-
-    public bool IsInBonusArea { get; private set; } = false;
-
-    [Header("Referencias de esta pista")]
+    [Header("Referencias de este jugador")]
     [SerializeField] private UIManager uiManager;
     [SerializeField] private CameraEffects cameraEffects;
 
@@ -29,31 +32,29 @@ public class GameManager : MonoBehaviour
     [Tooltip("Cantidad de aciertos consecutivos para recuperar una vida")]
     [SerializeField] private int hitsToRecoverLife = 3;
 
-    public bool IsGameOver { get; private set; }
-    public bool IsGameWon { get; private set; }
+    private int _consecutiveHits;
 
-    // Contador de aciertos consecutivos para recuperar vida
-    private int _consecutiveHits = 0;
+    [System.Serializable]
+    public class ResultEvent : UnityEvent<bool, PoseType> { }
 
-    [System.Serializable] public class ResultEvent : UnityEvent<bool, PoseType> { }
-    [System.Serializable] public class GameOverEvent : UnityEvent { }
-    [System.Serializable] public class GameWonEvent : UnityEvent<int, int> { }
+    [System.Serializable]
+    public class EliminatedEvent : UnityEvent { }
 
     public ResultEvent OnObstacleResultEvent = new ResultEvent();
-    public GameOverEvent OnGameOverEvent = new GameOverEvent();
-    public GameWonEvent OnGameWonEvent = new GameWonEvent();
+    public EliminatedEvent OnEliminatedEvent = new EliminatedEvent();
 
-    private void Start()
+    private void Awake()
     {
-        Lives = maxLives;
+        ResetGame();
     }
 
     /// <summary>
-    /// Configura las vidas y puntuaciones máximas según la dificultad elegida.
+    /// Configura vidas y puntuación según la dificultad y reinicia al jugador.
     /// </summary>
     public void SetDifficulty(Difficulty difficulty)
     {
         CurrentDifficulty = difficulty;
+
         switch (difficulty)
         {
             case Difficulty.Easy:
@@ -61,104 +62,109 @@ public class GameManager : MonoBehaviour
                 pointsPerHit = 80;
                 hitsToRecoverLife = 2;
                 break;
+
             case Difficulty.Normal:
                 maxLives = 5;
                 pointsPerHit = 100;
                 hitsToRecoverLife = 3;
                 break;
+
             case Difficulty.Hard:
                 maxLives = 3;
                 pointsPerHit = 150;
                 hitsToRecoverLife = 4;
                 break;
         }
-        Lives = maxLives;
-        _consecutiveHits = 0;
-        Score = 0;
-        Combo = 0;
-        MaxCombo = 0;
-        IsGameOver = false;
-        IsGameWon = false;
-        IsInBonusArea = false;
+
+        ResetGame();
     }
 
-    /// <summary>
-    /// Activa o desactiva el estado de Área Bonus.
-    /// </summary>
     public void SetBonusArea(bool active)
     {
         IsInBonusArea = active;
+
         if (uiManager != null)
-        {
             uiManager.ShowBonusAreaUI(active);
-        }
     }
 
     /// <summary>
-    /// Añade puntos de bonificación (por ejemplo, durante el frenesí del Área Bonus).
+    /// Suma puntos de bonus o ticks de notas sostenidas.
+    /// Un jugador eliminado no puede sumar más puntos.
     /// </summary>
     public void AddBonusPoints(int points)
     {
-        if (IsGameOver || IsGameWon) return;
+        if (IsEliminated || IsMatchFinished)
+            return;
 
         Score += points;
 
         if (uiManager != null)
-        {
             uiManager.ShowBonusPointsFeedback(points);
-        }
     }
 
     public void OnObstacleResult(bool success, PoseType poseRequired)
     {
-        if (IsGameOver || IsGameWon) return;
+        if (IsMatchFinished)
+            return;
+
+        // El jugador eliminado continúa recibiendo feedback, pero su estado
+        // y su puntuación quedan congelados.
+        if (IsEliminated)
+        {
+            if (!success && cameraEffects != null)
+                cameraEffects.PlayErrorFeedback();
+
+            OnObstacleResultEvent?.Invoke(success, poseRequired);
+            return;
+        }
 
         if (success)
         {
             Combo++;
-            if (Combo > MaxCombo) MaxCombo = Combo;
 
-            int bonus = (Combo > 0 && Combo % comboBonusEvery == 0) ? 2 : 1;
-            Score += pointsPerHit * bonus;
+            if (Combo > MaxCombo)
+                MaxCombo = Combo;
 
-            // Contar aciertos consecutivos
+            int multiplier =
+                Combo > 0 && Combo % comboBonusEvery == 0 ? 2 : 1;
+
+            Score += pointsPerHit * multiplier;
             _consecutiveHits++;
 
-            // Recuperar vida cada X aciertos
             if (_consecutiveHits >= hitsToRecoverLife)
             {
                 _consecutiveHits = 0;
+
                 if (Lives < maxLives)
-                {
                     Lives++;
-                }
             }
         }
         else
         {
             Combo = 0;
-            _consecutiveHits = 0; // Resetear contador al fallar
-            Lives--;
+            _consecutiveHits = 0;
+            Lives = Mathf.Max(0, Lives - 1);
 
             if (cameraEffects != null)
                 cameraEffects.PlayErrorFeedback();
 
-            if (Lives <= 0)
+            if (Lives == 0)
             {
-                IsGameOver = true;
-                OnGameOverEvent?.Invoke();
-                return;
+                IsEliminated = true;
+                OnEliminatedEvent?.Invoke();
             }
         }
 
         OnObstacleResultEvent?.Invoke(success, poseRequired);
     }
 
-    public void OnSongFinished()
+    public void MarkMatchFinished()
     {
-        if (IsGameOver) return;
-        IsGameWon = true;
-        OnGameWonEvent?.Invoke(Score, MaxCombo);
+        IsMatchFinished = true;
+        IsInBonusArea = false;
+
+        if (uiManager != null)
+            uiManager.ShowBonusAreaUI(false);
     }
 
     public void ResetGame()
@@ -167,9 +173,9 @@ public class GameManager : MonoBehaviour
         Combo = 0;
         MaxCombo = 0;
         Lives = maxLives;
-        IsGameOver = false;
-        IsGameWon = false;
         _consecutiveHits = 0;
         IsInBonusArea = false;
+        IsEliminated = false;
+        IsMatchFinished = false;
     }
 }

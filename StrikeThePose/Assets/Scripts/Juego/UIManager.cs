@@ -71,16 +71,24 @@ public class UIManager : MonoBehaviour
     [Header("Referencias")]
     [SerializeField] private GameManager gameManager;
     [SerializeField] private CameraEffects cameraEffects;
-    [SerializeField] private ObstacleSpawner obstacleSpawner;
+    [SerializeField] private MatchManager matchManager;
     [SerializeField] private AudioSource musicSource;
 
-    [Header("Flujo temporal para prueba del Paso 3")]
-    [Tooltip("Activar sólo en la UI de P1. P1 manejará menú, inicio y pausa para ambas pistas.")]
+    [Header("Flujo global")]
+    [Tooltip("Activar sólo en la UI de P1. P1 manejará menú, inicio y pausa.")]
     [SerializeField] private bool controlsGameFlow = true;
-    [Tooltip("GameManager de P2. Se usa temporalmente para aplicar la misma dificultad.")]
-    [SerializeField] private GameManager secondaryGameManager;
-    [Tooltip("Spawner de P2. Se inicia junto al spawner principal.")]
-    [SerializeField] private ObstacleSpawner secondaryObstacleSpawner;
+
+    [Header("Estado eliminado")]
+    [Tooltip("Indicador opcional. No debe bloquear la vista ni detener al jugador.")]
+    [SerializeField] private GameObject eliminatedIndicator;
+    [SerializeField] private TextMeshProUGUI eliminatedText;
+
+    [Header("Resultado 1v1 (opcional)")]
+    [Tooltip("Si no se asigna, se reutilizan los paneles de victoria/derrota existentes.")]
+    [SerializeField] private GameObject matchResultPanel;
+    [SerializeField] private TextMeshProUGUI matchResultTitleText;
+    [SerializeField] private TextMeshProUGUI matchResultScoreText;
+    [SerializeField] private Button matchResultRetryButton;
 
     private Coroutine _feedbackCoroutine;
     private Coroutine _bonusFeedbackCoroutine;
@@ -99,6 +107,8 @@ public class UIManager : MonoBehaviour
         losePanel?.SetActive(false);
         pausePanel?.SetActive(false);
         tutorialPanel?.SetActive(false);
+        matchResultPanel?.SetActive(false);
+        eliminatedIndicator?.SetActive(false);
 
         if (bonusAreaBanner != null) bonusAreaBanner.SetActive(false);
         if (bonusPointsFeedbackText != null) bonusPointsFeedbackText.gameObject.SetActive(false);
@@ -122,8 +132,7 @@ public class UIManager : MonoBehaviour
                 Debug.Log("[UIManager] No se asignó ningún panel inicial. El juego inicia de inmediato.");
                 Time.timeScale = 1f;
                 _gameStarted = true;
-                obstacleSpawner?.StartGame();
-                secondaryObstacleSpawner?.StartGame();
+                matchManager?.StartMatch(Difficulty.Normal);
             }
         }
         else
@@ -146,6 +155,7 @@ public class UIManager : MonoBehaviour
         // Los paneles de resultado siguen siendo individuales.
         winRetryButton?.onClick.AddListener(RetryLevel);
         loseRetryButton?.onClick.AddListener(RetryLevel);
+        matchResultRetryButton?.onClick.AddListener(RetryLevel);
 
         // Menú, inicio y pausa se registran únicamente en la UI principal (P1).
         if (controlsGameFlow)
@@ -181,21 +191,16 @@ public class UIManager : MonoBehaviour
             }
         }
 
-        // Registro de eventos de GameManager
-        if (gameManager != null)
-        {
-            if (gameManager.OnGameOverEvent != null)
-                gameManager.OnGameOverEvent.AddListener(ShowLosePanel);
-            if (gameManager.OnGameWonEvent != null)
-                gameManager.OnGameWonEvent.AddListener(ShowWinPanel);
-        }
+        // Un jugador eliminado continúa jugando. Sólo mostramos un indicador.
+        if (gameManager != null && gameManager.OnEliminatedEvent != null)
+            gameManager.OnEliminatedEvent.AddListener(ShowEliminatedIndicator);
     }
 
     private void Update()
     {
         if (gameManager == null) return;
 
-        if (controlsGameFlow && _gameStarted && !gameManager.IsGameOver && !gameManager.IsGameWon)
+        if (controlsGameFlow && _gameStarted && !gameManager.IsMatchFinished)
         {
             if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.P))
             {
@@ -224,47 +229,19 @@ public class UIManager : MonoBehaviour
 
     private void SelectDifficulty(Difficulty difficulty)
     {
-        Debug.Log($"[UIManager] Procesando selección de dificultad: {difficulty}");
+        Debug.Log($"[UIManager] Selección de dificultad: {difficulty}");
 
-        if (gameManager != null)
-        {
-            gameManager.SetDifficulty(difficulty);
-        }
+        if (!controlsGameFlow)
+            return;
 
-        if (secondaryGameManager != null)
-        {
-            secondaryGameManager.SetDifficulty(difficulty);
-        }
-
-        if (obstacleSpawner != null)
-        {
-            obstacleSpawner.SetDifficulty(difficulty);
-        }
-
-        if (secondaryObstacleSpawner != null)
-        {
-            secondaryObstacleSpawner.SetDifficulty(difficulty);
-        }
-
-        if (difficultyPanel != null)
-        {
-            difficultyPanel.SetActive(false);
-        }
-
+        difficultyPanel?.SetActive(false);
         Time.timeScale = 1f;
         _gameStarted = true;
 
-        if (obstacleSpawner != null)
-        {
-            Debug.Log("[UIManager] Iniciando Spawner de P1...");
-            obstacleSpawner.StartGame();
-        }
-
-        if (secondaryObstacleSpawner != null)
-        {
-            Debug.Log("[UIManager] Iniciando Spawner de P2...");
-            secondaryObstacleSpawner.StartGame();
-        }
+        if (matchManager != null)
+            matchManager.StartMatch(difficulty);
+        else
+            Debug.LogError("[UIManager] Falta asignar MatchManager.", this);
     }
 
     // ── Área Bonus ────────────────────────────────────────────────────────────
@@ -448,17 +425,92 @@ public class UIManager : MonoBehaviour
 
     // ── Paneles de resultado ──────────────────────────────────────────────────
 
-    private void ShowWinPanel(int score, int maxCombo)
+    public void PrepareForMatch()
     {
-        winPanel?.SetActive(true);
-        if (winScoreText != null) winScoreText.text = score.ToString("D7");
-        if (winComboText != null) winComboText.text = $"Combo máximo: {maxCombo}x";
+        _gameStarted = true;
+        _isPaused = false;
+
+        winPanel?.SetActive(false);
+        losePanel?.SetActive(false);
+        matchResultPanel?.SetActive(false);
+        eliminatedIndicator?.SetActive(false);
+        pausePanel?.SetActive(false);
+
+        ShowBonusAreaUI(false);
+        HideTutorialHint();
     }
 
-    private void ShowLosePanel()
+    public void ShowMatchResult(
+        MatchOutcome outcome,
+        int ownScore,
+        int rivalScore)
     {
-        losePanel?.SetActive(true);
-        if (loseMissesText != null) loseMissesText.text = "Te quedaste sin vidas";
+        _gameStarted = false;
+        eliminatedIndicator?.SetActive(false);
+        pausePanel?.SetActive(false);
+
+        string title = outcome switch
+        {
+            MatchOutcome.Win => "¡GANASTE!",
+            MatchOutcome.Lose => "PERDISTE",
+            _ => "EMPATE"
+        };
+
+        if (matchResultPanel != null)
+        {
+            matchResultPanel.SetActive(true);
+
+            if (matchResultTitleText != null)
+                matchResultTitleText.text = title;
+
+            if (matchResultScoreText != null)
+            {
+                matchResultScoreText.text =
+                    $"Tu puntaje: {ownScore:D7}\n" +
+                    $"Rival: {rivalScore:D7}";
+            }
+
+            return;
+        }
+
+        // Fallback: reutiliza los paneles que ya existían en el modo individual.
+        if (outcome == MatchOutcome.Lose)
+        {
+            losePanel?.SetActive(true);
+
+            if (loseMissesText != null)
+            {
+                loseMissesText.text =
+                    $"{title}\nTu puntaje: {ownScore:D7}\nRival: {rivalScore:D7}";
+            }
+        }
+        else
+        {
+            winPanel?.SetActive(true);
+
+            if (winScoreText != null)
+                winScoreText.text = ownScore.ToString("D7");
+
+            if (winComboText != null)
+            {
+                winComboText.text =
+                    $"{title} - Rival: {rivalScore:D7}";
+            }
+        }
+    }
+
+    private void ShowEliminatedIndicator()
+    {
+        eliminatedIndicator?.SetActive(true);
+
+        if (eliminatedText != null)
+            eliminatedText.text = "ELIMINADO - PODÉS SEGUIR JUGANDO";
+    }
+
+    private void OnDestroy()
+    {
+        if (gameManager != null && gameManager.OnEliminatedEvent != null)
+            gameManager.OnEliminatedEvent.RemoveListener(ShowEliminatedIndicator);
     }
 
     private void HideTutorialPanel()
@@ -466,8 +518,11 @@ public class UIManager : MonoBehaviour
         tutorialPanel?.SetActive(false);
         Time.timeScale = 1f;
         _gameStarted = true;
-        obstacleSpawner?.StartGame();
-        secondaryObstacleSpawner?.StartGame();
+
+        if (matchManager != null)
+            matchManager.StartMatch(Difficulty.Normal);
+        else
+            Debug.LogError("[UIManager] Falta asignar MatchManager.", this);
     }
 
     private void RetryLevel()
