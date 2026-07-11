@@ -3,24 +3,20 @@ using UnityEngine.Events;
 
 public class GameManager : MonoBehaviour
 {
-    public static GameManager Instance { get; private set; }
-
-    private void Awake()
-    {
-        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
-        Instance = this;
-    }
-
     public int Score { get; private set; }
     public int Combo { get; private set; }
     public int MaxCombo { get; private set; }
     public int Lives { get; private set; }
 
-   
+
     public Difficulty CurrentDifficulty { get; private set; } = Difficulty.Normal;
 
-   
+
     public bool IsInBonusArea { get; private set; } = false;
+
+    [Header("Referencias de esta pista")]
+    [SerializeField] private UIManager uiManager;
+    [SerializeField] private CameraEffects cameraEffects;
 
     [Header("Puntuación")]
     [SerializeField] private int pointsPerHit = 100;
@@ -92,9 +88,9 @@ public class GameManager : MonoBehaviour
     public void SetBonusArea(bool active)
     {
         IsInBonusArea = active;
-        if (UIManager.Instance != null)
+        if (uiManager != null)
         {
-            UIManager.Instance.ShowBonusAreaUI(active);
+            uiManager.ShowBonusAreaUI(active);
         }
     }
 
@@ -107,9 +103,9 @@ public class GameManager : MonoBehaviour
 
         Score += points;
 
-        if (UIManager.Instance != null)
+        if (uiManager != null)
         {
-            UIManager.Instance.ShowBonusPointsFeedback(points);
+            uiManager.ShowBonusPointsFeedback(points);
         }
     }
 
@@ -144,8 +140,8 @@ public class GameManager : MonoBehaviour
             _consecutiveHits = 0; // Resetear contador al fallar
             Lives--;
 
-            if (CameraEffects.Instance != null)
-                CameraEffects.Instance.PlayErrorFeedback();
+            if (cameraEffects != null)
+                cameraEffects.PlayErrorFeedback();
 
             if (Lives <= 0)
             {

@@ -5,14 +5,6 @@ using TMPro;
 
 public class UIManager : MonoBehaviour
 {
-    public static UIManager Instance { get; private set; }
-
-    private void Awake()
-    {
-        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
-        Instance = this;
-    }
-
     [Header("HUD")]
     [SerializeField] private TextMeshProUGUI scoreText;
     [SerializeField] private TextMeshProUGUI comboText;
@@ -77,8 +69,18 @@ public class UIManager : MonoBehaviour
     [SerializeField] private string mainMenuSceneName = "MainMenu";
 
     [Header("Referencias")]
+    [SerializeField] private GameManager gameManager;
+    [SerializeField] private CameraEffects cameraEffects;
     [SerializeField] private ObstacleSpawner obstacleSpawner;
     [SerializeField] private AudioSource musicSource;
+
+    [Header("Flujo temporal para prueba del Paso 3")]
+    [Tooltip("Activar sólo en la UI de P1. P1 manejará menú, inicio y pausa para ambas pistas.")]
+    [SerializeField] private bool controlsGameFlow = true;
+    [Tooltip("GameManager de P2. Se usa temporalmente para aplicar la misma dificultad.")]
+    [SerializeField] private GameManager secondaryGameManager;
+    [Tooltip("Spawner de P2. Se inicia junto al spawner principal.")]
+    [SerializeField] private ObstacleSpawner secondaryObstacleSpawner;
 
     private Coroutine _feedbackCoroutine;
     private Coroutine _bonusFeedbackCoroutine;
@@ -101,24 +103,36 @@ public class UIManager : MonoBehaviour
         if (bonusAreaBanner != null) bonusAreaBanner.SetActive(false);
         if (bonusPointsFeedbackText != null) bonusPointsFeedbackText.gameObject.SetActive(false);
 
-        if (difficultyPanel != null)
+        if (controlsGameFlow)
         {
-            Debug.Log("[UIManager] Activando panel de selección de dificultad.");
-            difficultyPanel.SetActive(true);
-            Time.timeScale = 0f;
-        }
-        else if (tutorialPanel != null)
-        {
-            Debug.Log("[UIManager] No hay panel de dificultad. Activando panel de tutorial.");
-            tutorialPanel.SetActive(true);
-            Time.timeScale = 0f;
+            if (difficultyPanel != null)
+            {
+                Debug.Log("[UIManager] Activando panel de selección de dificultad.");
+                difficultyPanel.SetActive(true);
+                Time.timeScale = 0f;
+            }
+            else if (tutorialPanel != null)
+            {
+                Debug.Log("[UIManager] No hay panel de dificultad. Activando panel de tutorial.");
+                tutorialPanel.SetActive(true);
+                Time.timeScale = 0f;
+            }
+            else
+            {
+                Debug.Log("[UIManager] No se asignó ningún panel inicial. El juego inicia de inmediato.");
+                Time.timeScale = 1f;
+                _gameStarted = true;
+                obstacleSpawner?.StartGame();
+                secondaryObstacleSpawner?.StartGame();
+            }
         }
         else
         {
-            Debug.Log("[UIManager] No se asignó ningún panel inicial. El juego inicia de inmediato.");
-            Time.timeScale = 1f;
+            // La UI secundaria funciona sólo como HUD y feedback.
+            difficultyPanel?.SetActive(false);
+            tutorialPanel?.SetActive(false);
+            pausePanel?.SetActive(false);
             _gameStarted = true;
-            obstacleSpawner?.StartGame();
         }
 
         // Ocultar elementos de gameplay
@@ -129,54 +143,59 @@ public class UIManager : MonoBehaviour
         if (tutorialHintBackground != null)
             tutorialHintBackground.SetActive(false);
 
-        // Registro de listeners de botones
+        // Los paneles de resultado siguen siendo individuales.
         winRetryButton?.onClick.AddListener(RetryLevel);
         loseRetryButton?.onClick.AddListener(RetryLevel);
-        tutorialStartButton?.onClick.AddListener(HideTutorialPanel);
-        resumeButton?.onClick.AddListener(ResumeGame);
-        restartButton?.onClick.AddListener(RetryLevel);
-        menuButton?.onClick.AddListener(GoToMainMenu);
 
-        if (easyButton != null)
+        // Menú, inicio y pausa se registran únicamente en la UI principal (P1).
+        if (controlsGameFlow)
         {
-            easyButton.onClick.RemoveAllListeners();
-            easyButton.onClick.AddListener(() => {
-                Debug.Log("[UIManager] Botón FÁCIL clickeado.");
-                SelectDifficulty(Difficulty.Easy);
-            });
-        }
-        if (normalButton != null)
-        {
-            normalButton.onClick.RemoveAllListeners();
-            normalButton.onClick.AddListener(() => {
-                Debug.Log("[UIManager] Botón NORMAL clickeado.");
-                SelectDifficulty(Difficulty.Normal);
-            });
-        }
-        if (hardButton != null)
-        {
-            hardButton.onClick.RemoveAllListeners();
-            hardButton.onClick.AddListener(() => {
-                Debug.Log("[UIManager] Botón DIFÍCIL clickeado.");
-                SelectDifficulty(Difficulty.Hard);
-            });
+            tutorialStartButton?.onClick.AddListener(HideTutorialPanel);
+            resumeButton?.onClick.AddListener(ResumeGame);
+            restartButton?.onClick.AddListener(RetryLevel);
+            menuButton?.onClick.AddListener(GoToMainMenu);
+
+            if (easyButton != null)
+            {
+                easyButton.onClick.RemoveAllListeners();
+                easyButton.onClick.AddListener(() => {
+                    Debug.Log("[UIManager] Botón FÁCIL clickeado.");
+                    SelectDifficulty(Difficulty.Easy);
+                });
+            }
+            if (normalButton != null)
+            {
+                normalButton.onClick.RemoveAllListeners();
+                normalButton.onClick.AddListener(() => {
+                    Debug.Log("[UIManager] Botón NORMAL clickeado.");
+                    SelectDifficulty(Difficulty.Normal);
+                });
+            }
+            if (hardButton != null)
+            {
+                hardButton.onClick.RemoveAllListeners();
+                hardButton.onClick.AddListener(() => {
+                    Debug.Log("[UIManager] Botón DIFÍCIL clickeado.");
+                    SelectDifficulty(Difficulty.Hard);
+                });
+            }
         }
 
         // Registro de eventos de GameManager
-        if (GameManager.Instance != null)
+        if (gameManager != null)
         {
-            if (GameManager.Instance.OnGameOverEvent != null)
-                GameManager.Instance.OnGameOverEvent.AddListener(ShowLosePanel);
-            if (GameManager.Instance.OnGameWonEvent != null)
-                GameManager.Instance.OnGameWonEvent.AddListener(ShowWinPanel);
+            if (gameManager.OnGameOverEvent != null)
+                gameManager.OnGameOverEvent.AddListener(ShowLosePanel);
+            if (gameManager.OnGameWonEvent != null)
+                gameManager.OnGameWonEvent.AddListener(ShowWinPanel);
         }
     }
 
     private void Update()
     {
-        if (GameManager.Instance == null) return;
+        if (gameManager == null) return;
 
-        if (_gameStarted && !GameManager.Instance.IsGameOver && !GameManager.Instance.IsGameWon)
+        if (controlsGameFlow && _gameStarted && !gameManager.IsGameOver && !gameManager.IsGameWon)
         {
             if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.P))
             {
@@ -187,16 +206,16 @@ public class UIManager : MonoBehaviour
         if (_isPaused) return;
 
         if (scoreText != null)
-            scoreText.text = GameManager.Instance.Score.ToString("D7");
+            scoreText.text = gameManager.Score.ToString("D7");
 
         if (comboText != null)
-            comboText.text = GameManager.Instance.Combo > 1
-                ? $"x{GameManager.Instance.Combo} COMBO" : "";
+            comboText.text = gameManager.Combo > 1
+                ? $"x{gameManager.Combo} COMBO" : "";
 
         if (livesText != null)
         {
             string hearts = "";
-            for (int i = 0; i < GameManager.Instance.Lives; i++) hearts += "♥ ";
+            for (int i = 0; i < gameManager.Lives; i++) hearts += "♥ ";
             livesText.text = hearts.TrimEnd();
         }
     }
@@ -207,14 +226,24 @@ public class UIManager : MonoBehaviour
     {
         Debug.Log($"[UIManager] Procesando selección de dificultad: {difficulty}");
 
-        if (GameManager.Instance != null)
+        if (gameManager != null)
         {
-            GameManager.Instance.SetDifficulty(difficulty);
+            gameManager.SetDifficulty(difficulty);
+        }
+
+        if (secondaryGameManager != null)
+        {
+            secondaryGameManager.SetDifficulty(difficulty);
         }
 
         if (obstacleSpawner != null)
         {
             obstacleSpawner.SetDifficulty(difficulty);
+        }
+
+        if (secondaryObstacleSpawner != null)
+        {
+            secondaryObstacleSpawner.SetDifficulty(difficulty);
         }
 
         if (difficultyPanel != null)
@@ -227,8 +256,14 @@ public class UIManager : MonoBehaviour
 
         if (obstacleSpawner != null)
         {
-            Debug.Log("[UIManager] Iniciando Spawner de obstáculos...");
+            Debug.Log("[UIManager] Iniciando Spawner de P1...");
             obstacleSpawner.StartGame();
+        }
+
+        if (secondaryObstacleSpawner != null)
+        {
+            Debug.Log("[UIManager] Iniciando Spawner de P2...");
+            secondaryObstacleSpawner.StartGame();
         }
     }
 
@@ -375,8 +410,8 @@ public class UIManager : MonoBehaviour
 
         _feedbackCoroutine = StartCoroutine(FeedbackRoutine());
 
-        if (success && CameraEffects.Instance != null)
-            CameraEffects.Instance.PlaySuccessFeedback();
+        if (success && cameraEffects != null)
+            cameraEffects.PlaySuccessFeedback();
     }
 
     private IEnumerator FeedbackRoutine()
@@ -432,6 +467,7 @@ public class UIManager : MonoBehaviour
         Time.timeScale = 1f;
         _gameStarted = true;
         obstacleSpawner?.StartGame();
+        secondaryObstacleSpawner?.StartGame();
     }
 
     private void RetryLevel()

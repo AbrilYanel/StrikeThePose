@@ -11,6 +11,10 @@ public class ParallaxSpawn : MonoBehaviour
     [Header("Referencias")]
     [SerializeField] private Camera targetCamera;
 
+    [Header("Pista")]
+    [Tooltip("Layer exclusiva de esta pista: Track_P1 o Track_P2.")]
+    [SerializeField] private string trackLayerName = "Track_P1";
+
     [Header("Movimiento")]
     [Tooltip("Velocidad base con la que los objetos vienen hacia el jugador/cámara.")]
     [SerializeField] private float moveSpeed = 8f;
@@ -59,11 +63,22 @@ public class ParallaxSpawn : MonoBehaviour
 
     private Coroutine _spawnRoutine;
     private bool _running;
+    private int _trackLayer = -1;
 
     private void Awake()
     {
         if (targetCamera == null)
             targetCamera = Camera.main;
+
+        _trackLayer = LayerMask.NameToLayer(trackLayerName);
+
+        if (_trackLayer < 0)
+        {
+            Debug.LogError(
+                $"[ParallaxSpawn] La layer '{trackLayerName}' no existe. Creala en Tags and Layers.",
+                this
+            );
+        }
     }
 
     private void Start()
@@ -97,7 +112,10 @@ public class ParallaxSpawn : MonoBehaviour
 
         if (clearExistingObjects)
         {
-            foreach (ParallaxBackgroundObject obj in FindObjectsByType<ParallaxBackgroundObject>(FindObjectsSortMode.None))
+            ParallaxBackgroundObject[] ownObjects =
+                GetComponentsInChildren<ParallaxBackgroundObject>(true);
+
+            foreach (ParallaxBackgroundObject obj in ownObjects)
                 Destroy(obj.gameObject);
         }
     }
@@ -136,13 +154,16 @@ public class ParallaxSpawn : MonoBehaviour
 
         float x = Random.Range(sideXMin, sideXMax) * Mathf.Sign(side);
         float y = Random.Range(yMin, yMax);
-        Vector3 spawnPos = new Vector3(x, y, spawnZ);
+        Vector3 localSpawnPos = new Vector3(x, y, spawnZ);
 
-        Quaternion rotation = Quaternion.identity;
+        Quaternion localRotation = Quaternion.identity;
         if (randomYRotation)
-            rotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
+            localRotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
 
-        GameObject go = Instantiate(prefab, spawnPos, rotation, transform);
+        GameObject go = Instantiate(prefab, transform);
+        go.transform.localPosition = localSpawnPos;
+        go.transform.localRotation = localRotation;
+        TrackLayerUtility.SetLayerRecursively(go, _trackLayer);
 
         float scale = Random.Range(randomScaleRange.x, randomScaleRange.y);
         go.transform.localScale *= scale;

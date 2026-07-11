@@ -4,8 +4,6 @@ using UnityEngine.UI;
 
 public class CameraEffects : MonoBehaviour
 {
-    public static CameraEffects Instance;
-
     [Header("Shake")]
     private Vector3 _originalPos;
     private float _shakeTimer;
@@ -20,12 +18,6 @@ public class CameraEffects : MonoBehaviour
     [SerializeField] private Image _successOverlay;
     [SerializeField] private Color _successFlashColor = new Color(0.2f, 1f, 0.4f, 0.3f);
     [SerializeField] private float _successFlashDuration = 0.2f;
-
-    void Awake()
-    {
-        if (Instance == null) Instance = this;
-        else Destroy(gameObject);
-    }
 
     void Start()
     {

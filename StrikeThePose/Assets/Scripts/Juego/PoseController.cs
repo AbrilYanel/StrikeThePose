@@ -20,15 +20,16 @@ public class PoseController : MonoBehaviour
     [Header("Animator")]
     [SerializeField] private Animator animator;
 
+    [Header("Input")]
+    [Tooltip("Componente que implementa IPlayerInputSource, por ejemplo KeyboardInputSource.")]
+    [SerializeField] private MonoBehaviour inputSourceComponent;
+
+    [Header("Estado del jugador")]
+    [SerializeField] private GameManager gameManager;
+
     [Header("Configuración del Bonus")]
     [Tooltip("Tiempo mínimo en segundos que debe pasar entre pulsaciones puntuables del Área Bonus (evita spam descontrolado)")]
     [SerializeField] private float bonusInputCooldown = 0.15f;
-
-
-    [Header("Input")]
-    [SerializeField] private MonoBehaviour inputSourceComponent;
-
-    private IPlayerInputSource _inputSource;
 
     public PoseType CurrentPose { get; private set; } = PoseType.Idle;
     public float LastInputTime { get; private set; } = -999f;
@@ -40,22 +41,36 @@ public class PoseController : MonoBehaviour
     // Guarda el timestamp del último bonus otorgado
     private float _lastBonusAwardTime = -999f;
 
+    private IPlayerInputSource _inputSource;
 
     private void Awake()
     {
         _inputSource = inputSourceComponent as IPlayerInputSource;
 
+        // Fallback: busca una fuente de input en el mismo GameObject.
+        if (_inputSource == null)
+        {
+            MonoBehaviour[] components = GetComponents<MonoBehaviour>();
+            foreach (MonoBehaviour component in components)
+            {
+                if (component is IPlayerInputSource source)
+                {
+                    inputSourceComponent = component;
+                    _inputSource = source;
+                    break;
+                }
+            }
+        }
+
         if (_inputSource == null)
         {
             Debug.LogError(
-                $"[{name}] El componente de input no implementa IPlayerInputSource.",
+                $"[PoseController] '{name}' no tiene una fuente que implemente IPlayerInputSource.",
                 this
             );
-
             enabled = false;
         }
     }
-
 
     private void Start()
     {
@@ -65,28 +80,23 @@ public class PoseController : MonoBehaviour
 
     private void Update()
     {
-        bool poseA = _inputSource.PoseA();
-        bool poseB = _inputSource.PoseB();
-        bool poseC = _inputSource.PoseC();
-        bool poseD = _inputSource.PoseD();
+        bool w = _inputSource.PoseA();
+        bool a = _inputSource.PoseB();
+        bool s = _inputSource.PoseC();
+        bool d = _inputSource.PoseD();
 
         // Detectar si alguna tecla relevante cambió este frame
-        bool changed =
-       poseA != _prevW ||
-       poseB != _prevA ||
-       poseC != _prevS ||
-       poseD != _prevD;
-
+        bool changed = (w != _prevW) || (a != _prevA) || (s != _prevS) || (d != _prevD);
         if (changed)
         {
-            PoseType newPose = ResolvePose(poseA, poseB, poseC, poseD);
+            PoseType newPose = ResolvePose(w, a, s, d);
             SetPose(newPose);
         }
 
-        _prevW = poseA;
-        _prevA = poseB;
-        _prevS = poseC;
-        _prevD = poseD;
+        _prevW = w;
+        _prevA = a;
+        _prevS = s;
+        _prevD = d;
     }
 
     /// <summary>
@@ -121,7 +131,7 @@ public class PoseController : MonoBehaviour
         LastInputTime = Time.time;
 
         // 💥 ÁREA BONUS: Premiamos los cambios de pose si estamos en zona de bonus y pasó el cooldown
-        if (GameManager.Instance != null && GameManager.Instance.IsInBonusArea)
+        if (gameManager != null && gameManager.IsInBonusArea)
         {
             // Solo premiamos si el jugador entra en una pose de juego válida y ha cambiado respecto a la anterior
             if (pose != PoseType.Idle && pose != oldPose)
@@ -129,7 +139,7 @@ public class PoseController : MonoBehaviour
                 // Aplicamos el Cooldown de seguridad
                 if (Time.time - _lastBonusAwardTime >= bonusInputCooldown)
                 {
-                    GameManager.Instance.AddBonusPoints(20); // Otorga los puntos
+                    gameManager.AddBonusPoints(20); // Otorga los puntos
                     _lastBonusAwardTime = Time.time;         // Registra el tiempo actual
                 }
                 else

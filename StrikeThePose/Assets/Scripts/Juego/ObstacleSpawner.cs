@@ -20,7 +20,19 @@ public class ObstacleSpawner : MonoBehaviour
 
     [Header("Referencias")]
     [SerializeField] private PoseController player;
+    [SerializeField] private GameManager gameManager;
+    [SerializeField] private UIManager uiManager;
     [SerializeField] private AudioSource musicSource;
+
+    [Header("Configuración de pista (Paso 3)")]
+    [Tooltip("Padre que recibirá los obstáculos de esta pista.")]
+    [SerializeField] private Transform obstacleParent;
+    [Tooltip("Layer exclusiva de esta pista: Track_P1 o Track_P2.")]
+    [SerializeField] private string trackLayerName = "Track_P1";
+    [Tooltip("Sólo el spawner P1 debe iniciar la música compartida.")]
+    [SerializeField] private bool controlsMusicPlayback = true;
+    [Tooltip("En la prueba 1v1 debe quedar desactivado para no cortar la canción compartida si un jugador pierde.")]
+    [SerializeField] private bool stopMusicOnGameOver = false;
 
     [Header("Posición de spawn")]
     [SerializeField] private float spawnZ = -20f;
@@ -65,11 +77,25 @@ public class ObstacleSpawner : MonoBehaviour
     private int _nextBonusIndex = 0;
     private bool _running = false;
     private int _spawnedCount = 0;
+    private int _trackLayer = -1;
 
     // Momento real en que el juego fue iniciado por el jugador
     private float _gameStartRealTime = -1f;
 
     private float TravelTime => Mathf.Abs(spawnZ) / obstacleSpeed;
+
+    private void Awake()
+    {
+        _trackLayer = LayerMask.NameToLayer(trackLayerName);
+
+        if (_trackLayer < 0)
+        {
+            Debug.LogError(
+                $"[ObstacleSpawner] La layer '{trackLayerName}' no existe. Creala en Tags and Layers.",
+                this
+            );
+        }
+    }
 
     private void Start()
     {
@@ -81,9 +107,9 @@ public class ObstacleSpawner : MonoBehaviour
             return;
         }
 
-        if (obstaclePrefab == null || player == null)
+        if (obstaclePrefab == null || player == null || gameManager == null || uiManager == null)
         {
-            Debug.LogError("[ObstacleSpawner] Falta asignar referencias críticas (Prefab/Player) en el Inspector.");
+            Debug.LogError("[ObstacleSpawner] Falta asignar referencias críticas (Prefab/Player/GameManager/UIManager) en el Inspector.");
             return;
         }
 
@@ -180,7 +206,7 @@ public class ObstacleSpawner : MonoBehaviour
         yield return new WaitForSeconds(beatMap.startOffsetSeconds);
 
         // Iniciar música
-        if (musicSource != null && beatMap.song != null)
+        if (controlsMusicPlayback && musicSource != null && beatMap.song != null)
         {
             musicSource.clip = beatMap.song;
             musicSource.Play();
@@ -192,9 +218,11 @@ public class ObstacleSpawner : MonoBehaviour
 
         while (_nextObstacleIndex < _obstacleEvents.Count || _nextBonusIndex < _bonusEvents.Count)
         {
-            if (GameManager.Instance != null && GameManager.Instance.IsGameOver)
+            if (gameManager != null && gameManager.IsGameOver)
             {
-                musicSource?.Stop();
+                if (controlsMusicPlayback && stopMusicOnGameOver)
+                    musicSource?.Stop();
+
                 yield break;
             }
 
@@ -227,12 +255,12 @@ public class ObstacleSpawner : MonoBehaviour
                 {
                     if (ev.isBonusAreaStart)
                     {
-                        GameManager.Instance?.SetBonusArea(true);
+                        gameManager?.SetBonusArea(true);
                         Debug.Log($"[Spawner] ¡Iniciando Área Bonus en beat {ev.beat}!");
                     }
                     else if (ev.isBonusAreaEnd)
                     {
-                        GameManager.Instance?.SetBonusArea(false);
+                        gameManager?.SetBonusArea(false);
                         Debug.Log($"[Spawner] ¡Terminando Área Bonus en beat {ev.beat}!");
                     }
                     _nextBonusIndex++;
@@ -250,8 +278,8 @@ public class ObstacleSpawner : MonoBehaviour
         _running = false;
         Debug.Log("[ObstacleSpawner] Canción terminada.");
 
-        if (GameManager.Instance != null)
-            GameManager.Instance.OnSongFinished();
+        if (gameManager != null)
+            gameManager.OnSongFinished();
     }
 
     private void SpawnObstacle(BeatEvent ev)
@@ -260,8 +288,21 @@ public class ObstacleSpawner : MonoBehaviour
             ? Random.Range(holeXMin, holeXMax)
             : ev.holePositionX;
 
-        Vector3 spawnPos = new Vector3(0f, 0f, spawnZ);
-        GameObject go = Instantiate(obstaclePrefab, spawnPos, Quaternion.identity);
+        GameObject go;
+
+        if (obstacleParent != null)
+        {
+            go = Instantiate(obstaclePrefab, obstacleParent);
+            go.transform.localPosition = new Vector3(0f, 0f, spawnZ);
+            go.transform.localRotation = Quaternion.identity;
+        }
+        else
+        {
+            Vector3 spawnPos = new Vector3(0f, 0f, spawnZ);
+            go = Instantiate(obstaclePrefab, spawnPos, Quaternion.identity);
+        }
+
+        TrackLayerUtility.SetLayerRecursively(go, _trackLayer);
         Obstacle obstacle = go.GetComponent<Obstacle>();
 
         if (obstacle != null)
@@ -287,7 +328,10 @@ public class ObstacleSpawner : MonoBehaviour
                 _currentLateWindow,
                 isTutorial,
                 isFake,
-                holdDuration
+                holdDuration,
+                gameManager,
+                uiManager,
+                _trackLayer
             );
         }
 

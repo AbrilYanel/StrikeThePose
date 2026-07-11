@@ -108,6 +108,9 @@ public class Obstacle : MonoBehaviour
     private bool _enteredWindow = false;
 
     private PoseController _player;
+    private GameManager _gameManager;
+    private UIManager _uiManager;
+    private int _renderLayer = -1;
     private float _judgeLineZ;
     private float _destroyZ;
     private float _windowStartZ;
@@ -128,9 +131,16 @@ public class Obstacle : MonoBehaviour
         float lateWindow,
         bool showTutorial = false,
         bool isFake = false,
-        float holdDuration = 0f
+        float holdDuration = 0f,
+        GameManager gameManager = null,
+        UIManager uiManager = null,
+        int renderLayer = -1
     )
     {
+        _gameManager = gameManager;
+        _uiManager = uiManager;
+        _renderLayer = renderLayer;
+
         RequiredPose = requiredPose;
         HolePositionX = holePosX;
         _player = player;
@@ -153,11 +163,12 @@ public class Obstacle : MonoBehaviour
         BuildWall();
         ApplyWallColor();
         BuildPoseVisual();
+        TrackLayerUtility.SetLayerRecursively(gameObject, _renderLayer);
 
-        if (showTutorial && !IsFake && !IsHold && UIManager.Instance != null && !UIManager.Instance.IsTutorialHintActive)
+        if (showTutorial && !IsFake && !IsHold && _uiManager != null && !_uiManager.IsTutorialHintActive)
         {
             _ownsHint = true;
-            UIManager.Instance.ShowTutorialHint(RequiredPose);
+            _uiManager.ShowTutorialHint(RequiredPose);
         }
     }
 
@@ -191,7 +202,7 @@ public class Obstacle : MonoBehaviour
             if (_pointsTickTimer >= 0.1f)
             {
                 _pointsTickTimer = 0f;
-                GameManager.Instance?.AddBonusPoints(5);
+                _gameManager?.AddBonusPoints(5);
             }
 
             if (_holdTimer >= HoldDuration)
@@ -268,11 +279,11 @@ public class Obstacle : MonoBehaviour
     {
         _evaluated = true;
 
-        if (GameManager.Instance != null)
-            GameManager.Instance.OnObstacleResult(success, RequiredPose);
+        if (_gameManager != null)
+            _gameManager.OnObstacleResult(success, RequiredPose);
 
-        if (UIManager.Instance != null)
-            UIManager.Instance.ShowHitFeedback(success);
+        if (_uiManager != null)
+            _uiManager.ShowHitFeedback(success);
 
         if (success)
         {
@@ -410,6 +421,7 @@ public class Obstacle : MonoBehaviour
         Vector3 spawnPos = new Vector3(HolePositionX, wallHeight / 2f, transform.position.z) + hitParticleOffset;
         GameObject particles = Instantiate(hitParticlePrefab, spawnPos, Quaternion.identity);
         particles.transform.localScale = Vector3.one * hitParticleScale;
+        TrackLayerUtility.SetLayerRecursively(particles, _renderLayer);
 
         ParticleSystem[] psArray = particles.GetComponentsInChildren<ParticleSystem>();
         foreach (var ps in psArray)
@@ -457,10 +469,10 @@ public class Obstacle : MonoBehaviour
 
     private void ReleaseHint()
     {
-        if (_ownsHint && UIManager.Instance != null)
+        if (_ownsHint && _uiManager != null)
         {
             _ownsHint = false;
-            UIManager.Instance.HideTutorialHint();
+            _uiManager.HideTutorialHint();
         }
     }
 
