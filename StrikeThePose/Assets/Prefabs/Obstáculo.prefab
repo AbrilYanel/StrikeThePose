@@ -198,7 +198,7 @@ MonoBehaviour:
     type: 3}
   poseABPrefab: {fileID: 919132149155446097, guid: 905a42efb9295b844b9091e3284cc7b9,
     type: 3}
-  poseADPrefab: {fileID: 919132149155446097, guid: 092a839436d183d40911ca4f45e21d5f,
+  poseADPrefab: {fileID: 919132149155446097, guid: b214a25349f16d745a1813761a4949b1,
     type: 3}
   poseBCPrefab: {fileID: 919132149155446097, guid: 3c05421d9c1541f4a886bc13e2789163,
     type: 3}

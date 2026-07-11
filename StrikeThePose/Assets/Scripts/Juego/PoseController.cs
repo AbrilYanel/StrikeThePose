@@ -24,6 +24,12 @@ public class PoseController : MonoBehaviour
     [Tooltip("Tiempo mínimo en segundos que debe pasar entre pulsaciones puntuables del Área Bonus (evita spam descontrolado)")]
     [SerializeField] private float bonusInputCooldown = 0.15f;
 
+
+    [Header("Input")]
+    [SerializeField] private MonoBehaviour inputSourceComponent;
+
+    private IPlayerInputSource _inputSource;
+
     public PoseType CurrentPose { get; private set; } = PoseType.Idle;
     public float LastInputTime { get; private set; } = -999f;
     public PoseType LastInputPose { get; private set; } = PoseType.Idle;
@@ -34,6 +40,23 @@ public class PoseController : MonoBehaviour
     // Guarda el timestamp del último bonus otorgado
     private float _lastBonusAwardTime = -999f;
 
+
+    private void Awake()
+    {
+        _inputSource = inputSourceComponent as IPlayerInputSource;
+
+        if (_inputSource == null)
+        {
+            Debug.LogError(
+                $"[{name}] El componente de input no implementa IPlayerInputSource.",
+                this
+            );
+
+            enabled = false;
+        }
+    }
+
+
     private void Start()
     {
         if (animator != null)
@@ -42,23 +65,28 @@ public class PoseController : MonoBehaviour
 
     private void Update()
     {
-        bool w = Input.GetKey(KeyCode.W);
-        bool a = Input.GetKey(KeyCode.A);
-        bool s = Input.GetKey(KeyCode.S);
-        bool d = Input.GetKey(KeyCode.D);
+        bool poseA = _inputSource.PoseA();
+        bool poseB = _inputSource.PoseB();
+        bool poseC = _inputSource.PoseC();
+        bool poseD = _inputSource.PoseD();
 
         // Detectar si alguna tecla relevante cambió este frame
-        bool changed = (w != _prevW) || (a != _prevA) || (s != _prevS) || (d != _prevD);
+        bool changed =
+       poseA != _prevW ||
+       poseB != _prevA ||
+       poseC != _prevS ||
+       poseD != _prevD;
+
         if (changed)
         {
-            PoseType newPose = ResolvePose(w, a, s, d);
+            PoseType newPose = ResolvePose(poseA, poseB, poseC, poseD);
             SetPose(newPose);
         }
 
-        _prevW = w;
-        _prevA = a;
-        _prevS = s;
-        _prevD = d;
+        _prevW = poseA;
+        _prevA = poseB;
+        _prevS = poseC;
+        _prevD = poseD;
     }
 
     /// <summary>
