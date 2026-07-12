@@ -207,10 +207,56 @@ MonoBehaviour:
   poseVisualLocalOffset: {x: 0, y: 1, z: 0}
   poseVisualLocalEuler: {x: 0, y: 90, z: 0}
   poseVisualScale: 0.7
+  poseAAdjustment:
+    localPositionOffset: {x: 0, y: 0, z: 0}
+    localEulerOffset: {x: 0, y: 0, z: 0}
+    scaleMultiplier: 1
+    materialOverride: {fileID: 0}
+  poseBAdjustment:
+    localPositionOffset: {x: 0, y: 0, z: 0}
+    localEulerOffset: {x: 0, y: 0, z: 0}
+    scaleMultiplier: 1
+    materialOverride: {fileID: 0}
+  poseCAdjustment:
+    localPositionOffset: {x: 0, y: -1, z: 0}
+    localEulerOffset: {x: 0, y: 0, z: 0}
+    scaleMultiplier: 1
+    materialOverride: {fileID: 0}
+  poseDAdjustment:
+    localPositionOffset: {x: 0, y: 0, z: 0}
+    localEulerOffset: {x: 0, y: 0, z: 0}
+    scaleMultiplier: 1
+    materialOverride: {fileID: 0}
+  poseABAdjustment:
+    localPositionOffset: {x: 0, y: 0, z: 0}
+    localEulerOffset: {x: 0, y: 0, z: 0}
+    scaleMultiplier: 1
+    materialOverride: {fileID: 0}
+  poseADAdjustment:
+    localPositionOffset: {x: 0, y: 0, z: 0}
+    localEulerOffset: {x: 0, y: 0, z: 0}
+    scaleMultiplier: 1
+    materialOverride: {fileID: 0}
+  poseBCAdjustment:
+    localPositionOffset: {x: 0, y: 0, z: 0}
+    localEulerOffset: {x: 0, y: 0, z: 0}
+    scaleMultiplier: 1
+    materialOverride: {fileID: 0}
+  poseCDAdjustment:
+    localPositionOffset: {x: 0, y: 0, z: 0}
+    localEulerOffset: {x: 0, y: 0, z: 0}
+    scaleMultiplier: 1
+    materialOverride: {fileID: 0}
+  sharedPoseMaterialOverride: {fileID: 2100000, guid: 1b21fb5a9385e47ada7490c885906b28,
+    type: 2}
   stretchPoseVisualOnHold: 1
   holdStretchAxis: 0
   holdStretchMultiplier: 1
   hidePoseVisualOnFake: 1
+  holdAudioSource: {fileID: 0}
+  holdNoteSound: {fileID: 8300000, guid: 1b8be1a2428a8be42bba588ac210107c, type: 3}
+  holdSoundVolume: 0.156
+  holdSoundSpatialBlend: 0
   hitParticlePrefab: {fileID: 901587287028533040, guid: 8ca1e7de761a43a4f8e4bd6d5fe287d9,
     type: 3}
   hitParticleDuration: 1

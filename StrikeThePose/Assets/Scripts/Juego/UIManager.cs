@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -54,6 +55,8 @@ public class UIManager : MonoBehaviour
     [SerializeField] private TextMeshProUGUI tutorialHintText;
     [Tooltip("Fondo opcional detrás del texto de tutorial")]
     [SerializeField] private GameObject tutorialHintBackground;
+    [Tooltip("Color único utilizado por todas las hints, independientemente de la pose")]
+    [SerializeField] private Color tutorialHintColor = Color.white;
 
     [Header("Área Bonus / Frenesí")]
     [Tooltip("Cartel o banner en pantalla que se activa en el Área Bonus (ej. ¡FRENESÍ DE TECLAS!)")]
@@ -67,6 +70,33 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Button restartButton;
     [SerializeField] private Button menuButton;
     [SerializeField] private string mainMenuSceneName = "MainMenu";
+
+    [Header("Sonidos de UI")]
+    [Tooltip("AudioSource exclusivo para la interfaz. Si queda vacío, se crea uno automáticamente.")]
+    [SerializeField] private AudioSource uiAudioSource;
+    [SerializeField] private AudioClip winPanelSound;
+    [SerializeField] private AudioClip losePanelSound;
+    [SerializeField] private AudioClip drawPanelSound;
+    [SerializeField] private AudioClip buttonClickSound;
+
+    [Header("Sonidos de poses")]
+    [SerializeField] private AudioClip correctPoseSound;
+    [SerializeField] private AudioClip incorrectPoseSound;
+    [SerializeField] private bool playPoseFeedbackSounds = true;
+    [Range(0f, 1f)]
+    [SerializeField] private float poseFeedbackVolume = 1f;
+
+    [Header("Volumen y activación")]
+    [Range(0f, 1f)]
+    [SerializeField] private float uiSoundVolume = 1f;
+    [Tooltip("Desactivar en la UI de P2 si no querés que Win y Lose suenen simultáneamente en 1v1 local.")]
+    [SerializeField] private bool playResultSounds = true;
+    [SerializeField] private bool playButtonSounds = true;
+    [Tooltip("Tiempo máximo que se espera antes de cambiar de escena para que se alcance a oír el clic.")]
+    [Range(0f, 0.5f)]
+    [SerializeField] private float sceneChangeSoundDelay = 0.15f;
+    [Tooltip("Botones que no sean hijos de este UIManager y también deban reproducir el clic.")]
+    [SerializeField] private Button[] additionalSoundButtons;
 
     [Header("Referencias")]
     [SerializeField] private GameManager gameManager;
@@ -92,13 +122,44 @@ public class UIManager : MonoBehaviour
 
     private Coroutine _feedbackCoroutine;
     private Coroutine _bonusFeedbackCoroutine;
+    private readonly List<Button> _registeredSoundButtons = new List<Button>();
+    private bool _resultSoundPlayed;
 
     public bool IsTutorialHintActive { get; private set; } = false;
+
+    private struct TutorialHintRequest
+    {
+        public int OwnerId;
+        public PoseType Pose;
+
+        public TutorialHintRequest(int ownerId, PoseType pose)
+        {
+            OwnerId = ownerId;
+            Pose = pose;
+        }
+    }
+
+    // Cola conserva exactamente el orden en que spawnearon los obstáculos.
+    private readonly List<TutorialHintRequest> _tutorialHintQueue =
+        new List<TutorialHintRequest>();
+
+    private bool _hasActiveTutorialHint;
+    private int _activeTutorialHintOwnerId;
 
     private bool _isPaused = false;
     private bool _gameStarted = false;
 
-    // ── Lifecycle ─────────────────────────────────────────────────────────────
+    private void Awake()
+    {
+        if (uiAudioSource == null)
+        {
+            uiAudioSource = gameObject.AddComponent<AudioSource>();
+            uiAudioSource.playOnAwake = false;
+            uiAudioSource.loop = false;
+            uiAudioSource.spatialBlend = 0f;
+            uiAudioSource.ignoreListenerPause = true;
+        }
+    }
 
     private void Start()
     {
@@ -210,6 +271,8 @@ public class UIManager : MonoBehaviour
         // Un jugador eliminado continúa jugando. Sólo mostramos un indicador.
         if (gameManager != null && gameManager.OnEliminatedEvent != null)
             gameManager.OnEliminatedEvent.AddListener(ShowEliminatedIndicator);
+
+        RegisterButtonSounds();
     }
 
     private void Update()
@@ -241,7 +304,7 @@ public class UIManager : MonoBehaviour
         }
     }
 
-    // ── Selección de Dificultad ───────────────────────────────────────────────
+
 
     private void SelectDifficulty(Difficulty difficulty)
     {
@@ -260,7 +323,7 @@ public class UIManager : MonoBehaviour
             Debug.LogError("[UIManager] Falta asignar MatchManager.", this);
     }
 
-    // ── Área Bonus ────────────────────────────────────────────────────────────
+
 
     public void ShowBonusAreaUI(bool active)
     {
@@ -303,7 +366,7 @@ public class UIManager : MonoBehaviour
         bonusPointsFeedbackText.gameObject.SetActive(false);
     }
 
-    // ── Pausa ─────────────────────────────────────────────────────────────────
+
 
     private void PauseGame()
     {
@@ -323,15 +386,76 @@ public class UIManager : MonoBehaviour
 
     private void GoToMainMenu()
     {
-        Time.timeScale = 1f;
-        UnityEngine.SceneManagement.SceneManager.LoadScene(mainMenuSceneName);
+        StartCoroutine(LoadSceneAfterClickSound(mainMenuSceneName));
     }
 
-    // ── Tutorial hint ─────────────────────────────────────────────────────────
 
-    public void ShowTutorialHint(PoseType pose)
+
+    public void RegisterTutorialHint(int ownerId, PoseType pose)
     {
-        if (tutorialHintText == null) return;
+        if (tutorialHintText == null || HasTutorialHintOwner(ownerId))
+            return;
+
+        _tutorialHintQueue.Add(new TutorialHintRequest(ownerId, pose));
+        TryShowNextTutorialHint();
+    }
+
+
+    public void ReleaseTutorialHint(int ownerId)
+    {
+        if (_hasActiveTutorialHint &&
+            _activeTutorialHintOwnerId == ownerId)
+        {
+            _hasActiveTutorialHint = false;
+            _activeTutorialHintOwnerId = 0;
+            HideTutorialHintVisual();
+            TryShowNextTutorialHint();
+            return;
+        }
+
+        // El obstáculo todavía estaba esperando en la cola. Lo quitamos para
+        // impedir que aparezca después de haber sido destruido.
+        for (int i = _tutorialHintQueue.Count - 1; i >= 0; i--)
+        {
+            if (_tutorialHintQueue[i].OwnerId == ownerId)
+                _tutorialHintQueue.RemoveAt(i);
+        }
+    }
+
+    private bool HasTutorialHintOwner(int ownerId)
+    {
+        if (_hasActiveTutorialHint &&
+            _activeTutorialHintOwnerId == ownerId)
+        {
+            return true;
+        }
+
+        for (int i = 0; i < _tutorialHintQueue.Count; i++)
+        {
+            if (_tutorialHintQueue[i].OwnerId == ownerId)
+                return true;
+        }
+
+        return false;
+    }
+
+    private void TryShowNextTutorialHint()
+    {
+        if (_hasActiveTutorialHint || _tutorialHintQueue.Count == 0)
+            return;
+
+        TutorialHintRequest nextHint = _tutorialHintQueue[0];
+        _tutorialHintQueue.RemoveAt(0);
+
+        _hasActiveTutorialHint = true;
+        _activeTutorialHintOwnerId = nextHint.OwnerId;
+        ShowTutorialHintVisual(nextHint.Pose);
+    }
+
+    private void ShowTutorialHintVisual(PoseType pose)
+    {
+        if (tutorialHintText == null)
+            return;
 
         string keyLabel = pose switch
         {
@@ -346,21 +470,10 @@ public class UIManager : MonoBehaviour
             _ => "?",
         };
 
-        Color poseColor = pose switch
-        {
-            PoseType.PoseA => new Color(0.2f, 0.6f, 1f),
-            PoseType.PoseB => new Color(1f, 0.4f, 0.2f),
-            PoseType.PoseC => new Color(0.3f, 0.9f, 0.3f),
-            PoseType.PoseD => new Color(0.9f, 0.2f, 0.8f),
-            PoseType.PoseAB => new Color(0.6f, 0.3f, 1f),
-            PoseType.PoseAD => new Color(1f, 0.9f, 0.1f),
-            PoseType.PoseBC => new Color(0.1f, 0.9f, 0.9f),
-            PoseType.PoseCD => new Color(1f, 0.5f, 0.7f),
-            _ => Color.white,
-        };
+        tutorialHintText.text =
+            $"Presiona <b><size=150%>{keyLabel}</size></b>";
 
-        tutorialHintText.text = $"Presioná <b><size=150%>{keyLabel}</size></b>";
-        tutorialHintText.color = poseColor;
+        tutorialHintText.color = tutorialHintColor;
         tutorialHintText.gameObject.SetActive(true);
 
         if (tutorialHintBackground != null)
@@ -369,19 +482,54 @@ public class UIManager : MonoBehaviour
         IsTutorialHintActive = true;
     }
 
-    public void HideTutorialHint()
+    private void HideTutorialHintVisual()
     {
         if (tutorialHintText != null)
             tutorialHintText.gameObject.SetActive(false);
+
         if (tutorialHintBackground != null)
             tutorialHintBackground.SetActive(false);
+
         IsTutorialHintActive = false;
     }
 
-    // ── Feedback de hit/miss (IMAGEN) ─────────────────────────────────────────
+
+    public void ClearTutorialHints()
+    {
+        _tutorialHintQueue.Clear();
+        _hasActiveTutorialHint = false;
+        _activeTutorialHintOwnerId = 0;
+        HideTutorialHintVisual();
+    }
+
+    // Compatibilidad con llamadas anteriores del proyecto.
+    public void ShowTutorialHint(PoseType pose)
+    {
+        ClearTutorialHints();
+        _hasActiveTutorialHint = true;
+        _activeTutorialHintOwnerId = int.MinValue;
+        ShowTutorialHintVisual(pose);
+    }
+
+    public void HideTutorialHint()
+    {
+        ClearTutorialHints();
+    }
+
+
 
     public void ShowHitFeedback(bool success)
     {
+        if (playPoseFeedbackSounds)
+        {
+            AudioClip feedbackClip = success
+                ? correctPoseSound
+                : incorrectPoseSound;
+
+            PlayUISound(feedbackClip, poseFeedbackVolume);
+        }
+
+        // El sonido funciona aunque no haya una imagen de feedback asignada.
         if (feedbackImage == null) return;
 
         // Elegir sprite aleatorio según resultado
@@ -439,12 +587,13 @@ public class UIManager : MonoBehaviour
         feedbackImage.gameObject.SetActive(false);
     }
 
-    // ── Paneles de resultado ──────────────────────────────────────────────────
+
 
     public void PrepareForMatch()
     {
         _gameStarted = true;
         _isPaused = false;
+        _resultSoundPlayed = false;
 
         if (winPanel != null) winPanel.SetActive(false);
         if (losePanel != null) losePanel.SetActive(false);
@@ -470,6 +619,7 @@ public class UIManager : MonoBehaviour
             pausePanel.SetActive(false);
 
         string title = completedSong ? "¡NIVEL COMPLETADO!" : "GAME OVER";
+        PlayResultSound(completedSong ? MatchOutcome.Win : MatchOutcome.Lose);
 
         if (matchResultPanel != null)
         {
@@ -519,10 +669,12 @@ public class UIManager : MonoBehaviour
 
         string title = outcome switch
         {
-            MatchOutcome.Win => "¡GANASTE!",
+            MatchOutcome.Win => "GANADOR",
             MatchOutcome.Lose => "PERDISTE",
             _ => "EMPATE"
         };
+
+        PlayResultSound(outcome);
 
         if (matchResultPanel != null)
         {
@@ -534,8 +686,8 @@ public class UIManager : MonoBehaviour
             if (matchResultScoreText != null)
             {
                 matchResultScoreText.text =
-                    $"Tu puntaje: {ownScore:D7}\n" +
-                    $"Rival: {rivalScore:D7}";
+                    $"Tu puntaje:\n {ownScore:D7}\n" +
+                    $"Rival:\n {rivalScore:D7}";
             }
 
             return;
@@ -549,7 +701,7 @@ public class UIManager : MonoBehaviour
             if (loseMissesText != null)
             {
                 loseMissesText.text =
-                    $"{title}\nTu puntaje: {ownScore:D7}\nRival: {rivalScore:D7}";
+                    $"{title}\nTu puntaje: \n{ownScore:D7}\nRival: \n{rivalScore:D7}";
             }
         }
         else
@@ -567,6 +719,72 @@ public class UIManager : MonoBehaviour
         }
     }
 
+    private void RegisterButtonSounds()
+    {
+        _registeredSoundButtons.Clear();
+
+        if (!playButtonSounds)
+            return;
+
+        Button[] childButtons = GetComponentsInChildren<Button>(true);
+
+        foreach (Button button in childButtons)
+            RegisterButtonSound(button);
+
+        if (additionalSoundButtons == null)
+            return;
+
+        foreach (Button button in additionalSoundButtons)
+            RegisterButtonSound(button);
+    }
+
+    private void RegisterButtonSound(Button button)
+    {
+        if (button == null || _registeredSoundButtons.Contains(button))
+            return;
+
+        // Evita registrar el mismo callback más de una vez si se refresca la UI.
+        button.onClick.RemoveListener(PlayButtonClickSound);
+        button.onClick.AddListener(PlayButtonClickSound);
+        _registeredSoundButtons.Add(button);
+    }
+
+    private void PlayButtonClickSound()
+    {
+        if (!playButtonSounds)
+            return;
+
+        PlayUISound(buttonClickSound);
+    }
+
+    private void PlayResultSound(MatchOutcome outcome)
+    {
+        if (!playResultSounds || _resultSoundPlayed)
+            return;
+
+        AudioClip clip = outcome switch
+        {
+            MatchOutcome.Win => winPanelSound,
+            MatchOutcome.Lose => losePanelSound,
+            _ => drawPanelSound
+        };
+
+        if (clip == null)
+            return;
+
+        _resultSoundPlayed = true;
+        PlayUISound(clip);
+    }
+
+    private void PlayUISound(AudioClip clip, float volumeMultiplier = 1f)
+    {
+        if (clip == null || uiAudioSource == null)
+            return;
+
+        float finalVolume = Mathf.Clamp01(uiSoundVolume * volumeMultiplier);
+        uiAudioSource.PlayOneShot(clip, finalVolume);
+    }
+
     private void ShowEliminatedIndicator()
     {
         // En Single Player la eliminación termina el nivel inmediatamente y se
@@ -581,13 +799,21 @@ public class UIManager : MonoBehaviour
             eliminatedIndicator.SetActive(true);
 
         if (eliminatedText != null)
-            eliminatedText.text = "ELIMINADO - PODÉS SEGUIR JUGANDO";
+            eliminatedText.text = "ELIMINADO - PODES SEGUIR JUGANDO";
     }
 
     private void OnDestroy()
     {
         if (gameManager != null && gameManager.OnEliminatedEvent != null)
             gameManager.OnEliminatedEvent.RemoveListener(ShowEliminatedIndicator);
+
+        foreach (Button button in _registeredSoundButtons)
+        {
+            if (button != null)
+                button.onClick.RemoveListener(PlayButtonClickSound);
+        }
+
+        _registeredSoundButtons.Clear();
     }
 
     private void HideTutorialPanel()
@@ -604,8 +830,37 @@ public class UIManager : MonoBehaviour
 
     private void RetryLevel()
     {
+        StartCoroutine(ReloadSceneAfterClickSound());
+    }
+
+    private IEnumerator LoadSceneAfterClickSound(string sceneName)
+    {
+        yield return WaitForSceneChangeSound();
         Time.timeScale = 1f;
-        UnityEngine.SceneManagement.SceneManager.LoadScene(
-            UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex);
+        UnityEngine.SceneManagement.SceneManager.LoadScene(sceneName);
+    }
+
+    private IEnumerator ReloadSceneAfterClickSound()
+    {
+        int buildIndex =
+            UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex;
+
+        yield return WaitForSceneChangeSound();
+        Time.timeScale = 1f;
+        UnityEngine.SceneManagement.SceneManager.LoadScene(buildIndex);
+    }
+
+    private IEnumerator WaitForSceneChangeSound()
+    {
+        if (!playButtonSounds || buttonClickSound == null ||
+            sceneChangeSoundDelay <= 0f)
+        {
+            yield break;
+        }
+
+        float delay = Mathf.Min(sceneChangeSoundDelay, buttonClickSound.length);
+
+        if (delay > 0f)
+            yield return new WaitForSecondsRealtime(delay);
     }
 }

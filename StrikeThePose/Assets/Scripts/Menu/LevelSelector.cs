@@ -11,7 +11,7 @@ public class LevelSelector : MonoBehaviour
     [SerializeField] private string level1SceneName = "Nivel1";
     [Tooltip("Nombre exacto de la escena del Menú Principal por si el jugador desea regresar")]
     [SerializeField] private string mainMenuSceneName = "MainMenu";
-
+    [SerializeField] private string versusSceneName = "Versus";
     [Header("Botones de la UI (Asignación Automática)")]
     [Tooltip("Arrastra aquí el botón de la UI para abrir el tutorial")]
     [SerializeField] private Button tutorialButton;
@@ -33,33 +33,28 @@ public class LevelSelector : MonoBehaviour
             backButton.onClick.AddListener(GoBackToMainMenu);
     }
 
-    /// <summary>
-    /// Carga la escena de Tutorial.
-    /// </summary>
+ 
     public void LoadTutorial()
     {
         LoadScene(tutorialSceneName);
     }
 
-    /// <summary>
-    /// Carga la escena del Nivel 1.
-    /// </summary>
+ 
     public void LoadLevel1()
     {
         LoadScene(level1SceneName);
     }
 
-    /// <summary>
-    /// Regresa a la escena del Menú Principal.
-    /// </summary>
+  
     public void GoBackToMainMenu()
     {
         LoadScene(mainMenuSceneName);
     }
 
-    /// <summary>
-    /// Método genérico para cargar cualquier escena de forma segura por su nombre de texto.
-    /// </summary>
+    public void LoadVersus()
+    {
+        LoadScene(versusSceneName);
+    }
     public void LoadScene(string sceneName)
     {
         if (string.IsNullOrEmpty(sceneName))

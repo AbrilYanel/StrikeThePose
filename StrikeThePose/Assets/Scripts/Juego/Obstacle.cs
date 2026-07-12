@@ -26,13 +26,44 @@ public class Obstacle : MonoBehaviour
     [SerializeField] private GameObject poseBCPrefab;
     [SerializeField] private GameObject poseCDPrefab;
 
-    [Header("Ajustes del visual de pose")]
-    [Tooltip("Offset local desde el inicio/centro del hueco. X se suma a HolePositionX. Z suele quedar en 0 para marcar el inicio de la nota.")]
+    [Header("Ajustes globales del visual de pose")]
+    [Tooltip("Offset base aplicado a todos los modelos. X se suma a HolePositionX.")]
     [SerializeField] private Vector3 poseVisualLocalOffset = new Vector3(0f, 2.2f, 0f);
-    [Tooltip("Rotación local del prefab de pose. Útil si el FBX mira hacia otro eje.")]
+    [Tooltip("Rotación base aplicada a todos los modelos.")]
     [SerializeField] private Vector3 poseVisualLocalEuler = Vector3.zero;
-    [Tooltip("Escala local multiplicadora para el prefab de pose.")]
+    [Tooltip("Escala base aplicada a todos los modelos.")]
     [SerializeField] private float poseVisualScale = 1f;
+
+    [System.Serializable]
+    private class PoseVisualAdjustment
+    {
+        [Tooltip("Offset adicional exclusivo de esta pose. Usá Y negativo para bajarla.")]
+        public Vector3 localPositionOffset = Vector3.zero;
+
+        [Tooltip("Rotación adicional exclusiva de esta pose. Modificá Y para girarla horizontalmente.")]
+        public Vector3 localEulerOffset = Vector3.zero;
+
+        [Tooltip("Multiplicador adicional de escala para esta pose.")]
+        [Min(0.01f)]
+        public float scaleMultiplier = 1f;
+
+        [Tooltip("Material URP opcional para esta pose. Tiene prioridad sobre el material compartido.")]
+        public Material materialOverride;
+    }
+
+    [Header("Ajustes individuales por pose")]
+    [SerializeField] private PoseVisualAdjustment poseAAdjustment = new PoseVisualAdjustment();
+    [SerializeField] private PoseVisualAdjustment poseBAdjustment = new PoseVisualAdjustment();
+    [SerializeField] private PoseVisualAdjustment poseCAdjustment = new PoseVisualAdjustment();
+    [SerializeField] private PoseVisualAdjustment poseDAdjustment = new PoseVisualAdjustment();
+    [SerializeField] private PoseVisualAdjustment poseABAdjustment = new PoseVisualAdjustment();
+    [SerializeField] private PoseVisualAdjustment poseADAdjustment = new PoseVisualAdjustment();
+    [SerializeField] private PoseVisualAdjustment poseBCAdjustment = new PoseVisualAdjustment();
+    [SerializeField] private PoseVisualAdjustment poseCDAdjustment = new PoseVisualAdjustment();
+
+    [Header("Material opcional para los modelos de pose")]
+    [Tooltip("Material URP aplicado a todos los modelos. Un material individual tiene prioridad.")]
+    [SerializeField] private Material sharedPoseMaterialOverride;
 
     [Header("Visual de nota sostenida")]
     [Tooltip("Si está activo, el prefab visual de pose se alarga desde el inicio hasta el final de la nota sostenida.")]
@@ -53,6 +84,17 @@ public class Obstacle : MonoBehaviour
     }
 
     private GameObject _poseVisualInstance;
+
+    [Header("Sonido de nota sostenida (Hold)")]
+    [Tooltip("AudioSource opcional. Si queda vacío, se crea uno automáticamente al iniciar un hold.")]
+    [SerializeField] private AudioSource holdAudioSource;
+    [Tooltip("Sonido que se reproduce durante toda la duración de la nota hold.")]
+    [SerializeField] private AudioClip holdNoteSound;
+    [Range(0f, 1f)]
+    [SerializeField] private float holdSoundVolume = 1f;
+    [Tooltip("0 = sonido 2D. 1 = sonido 3D posicionado en el obstáculo.")]
+    [Range(0f, 1f)]
+    [SerializeField] private float holdSoundSpatialBlend = 0f;
 
     [Header("Efecto de acierto")]
     [Tooltip("Prefab de partículas que aparece al acertar")]
@@ -104,7 +146,7 @@ public class Obstacle : MonoBehaviour
     public float HoldDuration { get; private set; } = 0f;
 
     private bool _evaluated = false;
-    private bool _ownsHint = false;
+    private bool _tutorialHintRegistered = false;
     private bool _enteredWindow = false;
 
     private PoseController _player;
@@ -120,7 +162,20 @@ public class Obstacle : MonoBehaviour
     private float _holdTimer = 0f;
     private float _pointsTickTimer = 0f;
     private GameObject _activeHoldParticles;
+    private bool _holdSoundPausedByGame;
     private Color _appliedColor = Color.white;
+
+    private void Awake()
+    {
+        if (holdAudioSource == null)
+            return;
+
+        holdAudioSource.playOnAwake = false;
+        holdAudioSource.loop = true;
+        holdAudioSource.spatialBlend = holdSoundSpatialBlend;
+        holdAudioSource.dopplerLevel = 0f;
+        holdAudioSource.Stop();
+    }
 
     public void Initialize(
         PoseType requiredPose,
@@ -165,15 +220,17 @@ public class Obstacle : MonoBehaviour
         BuildPoseVisual();
         TrackLayerUtility.SetLayerRecursively(gameObject, _renderLayer);
 
-        if (showTutorial && !IsFake && !IsHold && _uiManager != null && !_uiManager.IsTutorialHintActive)
+        if (showTutorial && !IsFake && !IsHold && _uiManager != null)
         {
-            _ownsHint = true;
-            _uiManager.ShowTutorialHint(RequiredPose);
+            _tutorialHintRegistered = true;
+            _uiManager.RegisterTutorialHint(GetInstanceID(), RequiredPose);
         }
     }
 
     private void Update()
     {
+        UpdateHoldSoundPauseState();
+
         transform.position += Vector3.forward * moveSpeed * Time.deltaTime;
         float z = transform.position.z;
 
@@ -193,6 +250,7 @@ public class Obstacle : MonoBehaviour
             {
                 _isHolding = false;
                 StopHoldParticles();
+                StopHoldSound();
                 EvaluateResult(false);
                 return;
             }
@@ -201,13 +259,16 @@ public class Obstacle : MonoBehaviour
             if (_pointsTickTimer >= 0.1f)
             {
                 _pointsTickTimer = 0f;
-                _gameManager?.AddBonusPoints(5);
+
+                if (_gameManager != null)
+                    _gameManager.AddBonusPoints(5);
             }
 
             if (_holdTimer >= HoldDuration)
             {
                 _isHolding = false;
                 StopHoldParticles();
+                StopHoldSound();
                 EvaluateResult(true);
             }
             return;
@@ -240,6 +301,7 @@ public class Obstacle : MonoBehaviour
                             _holdTimer = 0f;
                             _pointsTickTimer = 0f;
                             _activeHoldParticles = SpawnHitParticles(looping: true);
+                            StartHoldSound();
                             Debug.Log("[Obstacle] ¡Nota larga iniciada! Mantén presionado...");
                         }
                         else
@@ -284,6 +346,10 @@ public class Obstacle : MonoBehaviour
         if (_uiManager != null)
             _uiManager.ShowHitFeedback(success);
 
+        // El hint debe avanzar tanto en aciertos como en fallos. Antes sólo se
+        // liberaba al acertar; al fallar quedaba atrasado hasta destruirse.
+        ReleaseHint();
+
         if (success)
         {
             if (!IsHold)
@@ -291,7 +357,6 @@ public class Obstacle : MonoBehaviour
                 SpawnHitParticles(looping: false);
             }
 
-            ReleaseHint();
             Destroy(gameObject);
         }
 
@@ -309,13 +374,42 @@ public class Obstacle : MonoBehaviour
             return;
         }
 
-        Vector3 localPos = new Vector3(HolePositionX, 0f, 0f) + poseVisualLocalOffset;
-        Quaternion localRot = Quaternion.Euler(poseVisualLocalEuler);
+        PoseVisualAdjustment adjustment = GetPoseVisualAdjustment(RequiredPose);
+
+        Vector3 individualPositionOffset = adjustment != null
+            ? adjustment.localPositionOffset
+            : Vector3.zero;
+
+        Vector3 individualEulerOffset = adjustment != null
+            ? adjustment.localEulerOffset
+            : Vector3.zero;
+
+        float individualScale = adjustment != null
+            ? Mathf.Max(0.01f, adjustment.scaleMultiplier)
+            : 1f;
+
+        Vector3 localPos =
+            new Vector3(HolePositionX, 0f, 0f) +
+            poseVisualLocalOffset +
+            individualPositionOffset;
+
+        Quaternion localRot = Quaternion.Euler(
+            poseVisualLocalEuler + individualEulerOffset
+        );
 
         _poseVisualInstance = Instantiate(prefab, transform);
         _poseVisualInstance.transform.localPosition = localPos;
         _poseVisualInstance.transform.localRotation = localRot;
-        _poseVisualInstance.transform.localScale = Vector3.one * poseVisualScale;
+        _poseVisualInstance.transform.localScale =
+            Vector3.one * poseVisualScale * individualScale;
+
+        Material materialToApply = sharedPoseMaterialOverride;
+
+        if (adjustment != null && adjustment.materialOverride != null)
+            materialToApply = adjustment.materialOverride;
+
+        if (materialToApply != null)
+            ApplyMaterialOverride(_poseVisualInstance, materialToApply);
 
         if (IsHold && stretchPoseVisualOnHold)
         {
@@ -344,6 +438,39 @@ public class Obstacle : MonoBehaviour
             PoseType.PoseCD => poseCDPrefab,
             _ => null,
         };
+    }
+
+    private PoseVisualAdjustment GetPoseVisualAdjustment(PoseType pose)
+    {
+        return pose switch
+        {
+            PoseType.PoseA => poseAAdjustment,
+            PoseType.PoseB => poseBAdjustment,
+            PoseType.PoseC => poseCAdjustment,
+            PoseType.PoseD => poseDAdjustment,
+            PoseType.PoseAB => poseABAdjustment,
+            PoseType.PoseAD => poseADAdjustment,
+            PoseType.PoseBC => poseBCAdjustment,
+            PoseType.PoseCD => poseCDAdjustment,
+            _ => null,
+        };
+    }
+
+    private static void ApplyMaterialOverride(
+        GameObject visual,
+        Material materialOverride)
+    {
+        Renderer[] renderers = visual.GetComponentsInChildren<Renderer>(true);
+
+        foreach (Renderer renderer in renderers)
+        {
+            Material[] materials = renderer.sharedMaterials;
+
+            for (int i = 0; i < materials.Length; i++)
+                materials[i] = materialOverride;
+
+            renderer.sharedMaterials = materials;
+        }
     }
 
     private void FitHoldVisualFromStartToEnd(GameObject visual, float startZ, float holdLength)
@@ -452,6 +579,66 @@ public class Obstacle : MonoBehaviour
         return particles;
     }
 
+    private void StartHoldSound()
+    {
+        if (holdNoteSound == null)
+            return;
+
+        EnsureHoldAudioSource();
+
+        holdAudioSource.Stop();
+        holdAudioSource.clip = holdNoteSound;
+        holdAudioSource.volume = holdSoundVolume;
+        holdAudioSource.spatialBlend = holdSoundSpatialBlend;
+
+        // El clip se repite si es más corto que la nota y se corta exactamente
+        // cuando finaliza o se falla el hold.
+        holdAudioSource.loop = true;
+        holdAudioSource.Play();
+        _holdSoundPausedByGame = false;
+    }
+
+    private void EnsureHoldAudioSource()
+    {
+        if (holdAudioSource != null)
+            return;
+
+        holdAudioSource = gameObject.AddComponent<AudioSource>();
+        holdAudioSource.playOnAwake = false;
+        holdAudioSource.loop = true;
+        holdAudioSource.spatialBlend = holdSoundSpatialBlend;
+        holdAudioSource.dopplerLevel = 0f;
+    }
+
+    private void StopHoldSound()
+    {
+        _holdSoundPausedByGame = false;
+
+        if (holdAudioSource == null)
+            return;
+
+        holdAudioSource.Stop();
+    }
+
+    private void UpdateHoldSoundPauseState()
+    {
+        if (!_isHolding || holdAudioSource == null)
+            return;
+
+        bool gamePaused = Time.timeScale <= 0.0001f;
+
+        if (gamePaused && !_holdSoundPausedByGame)
+        {
+            holdAudioSource.Pause();
+            _holdSoundPausedByGame = true;
+        }
+        else if (!gamePaused && _holdSoundPausedByGame)
+        {
+            holdAudioSource.UnPause();
+            _holdSoundPausedByGame = false;
+        }
+    }
+
     private void StopHoldParticles()
     {
         if (_activeHoldParticles == null) return;
@@ -468,20 +655,22 @@ public class Obstacle : MonoBehaviour
 
     private void ReleaseHint()
     {
-        if (_ownsHint && _uiManager != null)
-        {
-            _ownsHint = false;
-            _uiManager.HideTutorialHint();
-        }
+        if (!_tutorialHintRegistered)
+            return;
+
+        _tutorialHintRegistered = false;
+
+        if (_uiManager != null)
+            _uiManager.ReleaseTutorialHint(GetInstanceID());
     }
 
-    private void OnDestroy() => ReleaseHint();
+    private void OnDestroy()
+    {
+        StopHoldSound();
+        ReleaseHint();
+    }
 
-    /// <summary>
-    /// Convierte la posición mundial del jugador al espacio local del obstáculo.
-    /// Así la comprobación funciona aunque Track_P1 y Track_P2 estén desplazados
-    /// físicamente en el mundo.
-    /// </summary>
+  
     private bool IsPlayerInHole()
     {
         if (_player == null)
@@ -496,10 +685,7 @@ public class Obstacle : MonoBehaviour
                playerLocalX <= HolePositionX + half;
     }
 
-    /// <summary>
-    /// Obtiene el centro mundial del hueco partiendo de coordenadas locales.
-    /// También evita que las partículas de P2 aparezcan en la pista de P1.
-    /// </summary>
+  
     private Vector3 GetHoleWorldPosition()
     {
         Vector3 localPosition = new Vector3(

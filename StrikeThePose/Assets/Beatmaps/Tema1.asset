@@ -329,5 +329,5 @@ MonoBehaviour:
     holePositionX: -999
     isBonusAreaStart: 0
     isBonusAreaEnd: 0
-    isHoldNote: 0
-    holdDuration: 0
+    isHoldNote: 1
+    holdDuration: 3
