@@ -3,10 +3,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 
-/// <summary>
-/// Spawner maestro del modo 1v1. Lee un único Beatmap y, por cada evento,
-/// genera una copia equivalente para P1 y otra para P2.
-/// </summary>
 public class ObstacleSpawner : MonoBehaviour
 {
     [Header("Datos rítmicos (Default / Normal)")]
@@ -83,6 +79,7 @@ public class ObstacleSpawner : MonoBehaviour
 
     private bool _running;
     private bool _configurationValid;
+    private MatchMode _activeMode = MatchMode.Versus;
     private float _gameStartRealTime = -1f;
 
     private float TravelTime => Mathf.Abs(spawnZ) / obstacleSpeed;
@@ -92,7 +89,7 @@ public class ObstacleSpawner : MonoBehaviour
         _player1Layer = LayerMask.NameToLayer(player1LayerName);
         _player2Layer = LayerMask.NameToLayer(player2LayerName);
 
-        _configurationValid = ValidateConfiguration();
+        _configurationValid = ValidateCommonConfiguration();
 
         if (!_configurationValid)
             return;
@@ -114,7 +111,7 @@ public class ObstacleSpawner : MonoBehaviour
         );
     }
 
-    private bool ValidateConfiguration()
+    private bool ValidateCommonConfiguration()
     {
         bool valid = true;
 
@@ -134,27 +131,50 @@ public class ObstacleSpawner : MonoBehaviour
         if (player1 == null || gameManager1 == null || uiManager1 == null ||
             obstacleParent1 == null)
         {
-            Debug.LogError("[MasterSpawner] Faltan referencias de P1.", this);
+            Debug.LogError(
+                "[MasterSpawner] Faltan referencias de Single Player/P1.",
+                this
+            );
             valid = false;
         }
 
-        if (player2 == null || gameManager2 == null || uiManager2 == null ||
-            obstacleParent2 == null)
-        {
-            Debug.LogError("[MasterSpawner] Faltan referencias de P2.", this);
-            valid = false;
-        }
-
-        if (_player1Layer < 0 || _player2Layer < 0)
+        if (_player1Layer < 0)
         {
             Debug.LogError(
-                "[MasterSpawner] No existen las layers Track_P1 y/o Track_P2.",
+                $"[MasterSpawner] No existe la layer '{player1LayerName}'.",
                 this
             );
             valid = false;
         }
 
         return valid;
+    }
+
+    private bool ValidateModeConfiguration(MatchMode mode)
+    {
+        if (mode == MatchMode.SinglePlayer)
+            return true;
+
+        if (player2 == null || gameManager2 == null || uiManager2 == null ||
+            obstacleParent2 == null)
+        {
+            Debug.LogError(
+                "[MasterSpawner] El modo Versus requiere todas las referencias de P2.",
+                this
+            );
+            return false;
+        }
+
+        if (_player2Layer < 0)
+        {
+            Debug.LogError(
+                $"[MasterSpawner] No existe la layer '{player2LayerName}'.",
+                this
+            );
+            return false;
+        }
+
+        return true;
     }
 
     public void SetDifficulty(Difficulty difficulty)
@@ -232,10 +252,16 @@ public class ObstacleSpawner : MonoBehaviour
 
     public void StartGame()
     {
+        StartGame(MatchMode.Versus);
+    }
+
+    public void StartGame(MatchMode mode)
+    {
         if (_running)
             return;
 
-        if (!_configurationValid || beatMap == null)
+        if (!_configurationValid || beatMap == null ||
+            !ValidateModeConfiguration(mode))
         {
             Debug.LogError(
                 "[MasterSpawner] No se puede iniciar por una configuración inválida.",
@@ -244,6 +270,7 @@ public class ObstacleSpawner : MonoBehaviour
             return;
         }
 
+        _activeMode = mode;
         _running = true;
         StartCoroutine(RunSpawner());
     }
@@ -279,8 +306,12 @@ public class ObstacleSpawner : MonoBehaviour
             AreAllTrackObstaclesGone());
 
         _running = false;
-        gameManager1?.SetBonusArea(false);
-        gameManager2?.SetBonusArea(false);
+
+        if (gameManager1 != null)
+            gameManager1.SetBonusArea(false);
+
+        if (_activeMode == MatchMode.Versus && gameManager2 != null)
+            gameManager2.SetBonusArea(false);
 
         Debug.Log("[MasterSpawner] Canción terminada.");
         OnSongFinishedEvent?.Invoke();
@@ -314,8 +345,11 @@ public class ObstacleSpawner : MonoBehaviour
 
             bool active = beatEvent.isBonusAreaStart && !beatEvent.isBonusAreaEnd;
 
-            gameManager1?.SetBonusArea(active);
-            gameManager2?.SetBonusArea(active);
+            if (gameManager1 != null)
+                gameManager1.SetBonusArea(active);
+
+            if (_activeMode == MatchMode.Versus && gameManager2 != null)
+                gameManager2.SetBonusArea(active);
 
             Debug.Log(
                 active
@@ -355,18 +389,21 @@ public class ObstacleSpawner : MonoBehaviour
             _player1Layer
         );
 
-        SpawnForPlayer(
-            beatEvent,
-            holePosX,
-            isTutorial,
-            isFake,
-            holdDuration,
-            player2,
-            gameManager2,
-            uiManager2,
-            obstacleParent2,
-            _player2Layer
-        );
+        if (_activeMode == MatchMode.Versus)
+        {
+            SpawnForPlayer(
+                beatEvent,
+                holePosX,
+                isTutorial,
+                isFake,
+                holdDuration,
+                player2,
+                gameManager2,
+                uiManager2,
+                obstacleParent2,
+                _player2Layer
+            );
+        }
 
         _spawnedCount++;
     }
@@ -421,10 +458,45 @@ public class ObstacleSpawner : MonoBehaviour
         bool player1Clear =
             obstacleParent1.GetComponentsInChildren<Obstacle>().Length == 0;
 
+        if (_activeMode == MatchMode.SinglePlayer)
+            return player1Clear;
+
         bool player2Clear =
             obstacleParent2.GetComponentsInChildren<Obstacle>().Length == 0;
 
         return player1Clear && player2Clear;
+    }
+
+    public void StopGame()
+    {
+        StopAllCoroutines();
+        _running = false;
+
+        if (musicSource != null)
+            musicSource.Stop();
+
+        if (gameManager1 != null)
+            gameManager1.SetBonusArea(false);
+
+        if (_activeMode == MatchMode.Versus && gameManager2 != null)
+            gameManager2.SetBonusArea(false);
+
+        DestroyTrackObstacles(obstacleParent1);
+
+        if (_activeMode == MatchMode.Versus)
+            DestroyTrackObstacles(obstacleParent2);
+    }
+
+    private static void DestroyTrackObstacles(Transform obstacleParent)
+    {
+        if (obstacleParent == null)
+            return;
+
+        Obstacle[] obstacles =
+            obstacleParent.GetComponentsInChildren<Obstacle>();
+
+        foreach (Obstacle obstacle in obstacles)
+            Destroy(obstacle.gameObject);
     }
 
     public void SetPaused(bool paused)

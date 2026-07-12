@@ -83,8 +83,8 @@ public class UIManager : MonoBehaviour
     [SerializeField] private GameObject eliminatedIndicator;
     [SerializeField] private TextMeshProUGUI eliminatedText;
 
-    [Header("Resultado 1v1 (opcional)")]
-    [Tooltip("Si no se asigna, se reutilizan los paneles de victoria/derrota existentes.")]
+    [Header("Panel de resultado genérico (opcional)")]
+    [Tooltip("Sirve para Single Player y 1v1. Si no se asigna, se reutilizan los paneles de victoria/derrota existentes.")]
     [SerializeField] private GameObject matchResultPanel;
     [SerializeField] private TextMeshProUGUI matchResultTitleText;
     [SerializeField] private TextMeshProUGUI matchResultScoreText;
@@ -103,12 +103,12 @@ public class UIManager : MonoBehaviour
     private void Start()
     {
         // Activación inicial de paneles de forma segura
-        winPanel?.SetActive(false);
-        losePanel?.SetActive(false);
-        pausePanel?.SetActive(false);
-        tutorialPanel?.SetActive(false);
-        matchResultPanel?.SetActive(false);
-        eliminatedIndicator?.SetActive(false);
+        if (winPanel != null) winPanel.SetActive(false);
+        if (losePanel != null) losePanel.SetActive(false);
+        if (pausePanel != null) pausePanel.SetActive(false);
+        if (tutorialPanel != null) tutorialPanel.SetActive(false);
+        if (matchResultPanel != null) matchResultPanel.SetActive(false);
+        if (eliminatedIndicator != null) eliminatedIndicator.SetActive(false);
 
         if (bonusAreaBanner != null) bonusAreaBanner.SetActive(false);
         if (bonusPointsFeedbackText != null) bonusPointsFeedbackText.gameObject.SetActive(false);
@@ -132,15 +132,19 @@ public class UIManager : MonoBehaviour
                 Debug.Log("[UIManager] No se asignó ningún panel inicial. El juego inicia de inmediato.");
                 Time.timeScale = 1f;
                 _gameStarted = true;
-                matchManager?.StartMatch(Difficulty.Normal);
+
+                if (matchManager != null)
+                    matchManager.StartMatch(Difficulty.Normal);
+                else
+                    Debug.LogError("[UIManager] Falta asignar MatchManager.", this);
             }
         }
         else
         {
             // La UI secundaria funciona sólo como HUD y feedback.
-            difficultyPanel?.SetActive(false);
-            tutorialPanel?.SetActive(false);
-            pausePanel?.SetActive(false);
+            if (difficultyPanel != null) difficultyPanel.SetActive(false);
+            if (tutorialPanel != null) tutorialPanel.SetActive(false);
+            if (pausePanel != null) pausePanel.SetActive(false);
             _gameStarted = true;
         }
 
@@ -153,17 +157,29 @@ public class UIManager : MonoBehaviour
             tutorialHintBackground.SetActive(false);
 
         // Los paneles de resultado siguen siendo individuales.
-        winRetryButton?.onClick.AddListener(RetryLevel);
-        loseRetryButton?.onClick.AddListener(RetryLevel);
-        matchResultRetryButton?.onClick.AddListener(RetryLevel);
+        if (winRetryButton != null)
+            winRetryButton.onClick.AddListener(RetryLevel);
+
+        if (loseRetryButton != null)
+            loseRetryButton.onClick.AddListener(RetryLevel);
+
+        if (matchResultRetryButton != null)
+            matchResultRetryButton.onClick.AddListener(RetryLevel);
 
         // Menú, inicio y pausa se registran únicamente en la UI principal (P1).
         if (controlsGameFlow)
         {
-            tutorialStartButton?.onClick.AddListener(HideTutorialPanel);
-            resumeButton?.onClick.AddListener(ResumeGame);
-            restartButton?.onClick.AddListener(RetryLevel);
-            menuButton?.onClick.AddListener(GoToMainMenu);
+            if (tutorialStartButton != null)
+                tutorialStartButton.onClick.AddListener(HideTutorialPanel);
+
+            if (resumeButton != null)
+                resumeButton.onClick.AddListener(ResumeGame);
+
+            if (restartButton != null)
+                restartButton.onClick.AddListener(RetryLevel);
+
+            if (menuButton != null)
+                menuButton.onClick.AddListener(GoToMainMenu);
 
             if (easyButton != null)
             {
@@ -234,7 +250,7 @@ public class UIManager : MonoBehaviour
         if (!controlsGameFlow)
             return;
 
-        difficultyPanel?.SetActive(false);
+        if (difficultyPanel != null) difficultyPanel.SetActive(false);
         Time.timeScale = 1f;
         _gameStarted = true;
 
@@ -293,7 +309,7 @@ public class UIManager : MonoBehaviour
     {
         _isPaused = true;
         Time.timeScale = 0f;
-        pausePanel?.SetActive(true);
+        if (pausePanel != null) pausePanel.SetActive(true);
         if (musicSource != null && musicSource.isPlaying) musicSource.Pause();
     }
 
@@ -301,7 +317,7 @@ public class UIManager : MonoBehaviour
     {
         _isPaused = false;
         Time.timeScale = 1f;
-        pausePanel?.SetActive(false);
+        if (pausePanel != null) pausePanel.SetActive(false);
         if (musicSource != null && !musicSource.isPlaying) musicSource.UnPause();
     }
 
@@ -430,14 +446,66 @@ public class UIManager : MonoBehaviour
         _gameStarted = true;
         _isPaused = false;
 
-        winPanel?.SetActive(false);
-        losePanel?.SetActive(false);
-        matchResultPanel?.SetActive(false);
-        eliminatedIndicator?.SetActive(false);
-        pausePanel?.SetActive(false);
+        if (winPanel != null) winPanel.SetActive(false);
+        if (losePanel != null) losePanel.SetActive(false);
+        if (matchResultPanel != null) matchResultPanel.SetActive(false);
+        if (eliminatedIndicator != null) eliminatedIndicator.SetActive(false);
+        if (pausePanel != null) pausePanel.SetActive(false);
 
         ShowBonusAreaUI(false);
         HideTutorialHint();
+    }
+
+    public void ShowSinglePlayerResult(
+        bool completedSong,
+        int score,
+        int maxCombo)
+    {
+        _gameStarted = false;
+
+        if (eliminatedIndicator != null)
+            eliminatedIndicator.SetActive(false);
+
+        if (pausePanel != null)
+            pausePanel.SetActive(false);
+
+        string title = completedSong ? "¡NIVEL COMPLETADO!" : "GAME OVER";
+
+        if (matchResultPanel != null)
+        {
+            matchResultPanel.SetActive(true);
+
+            if (matchResultTitleText != null)
+                matchResultTitleText.text = title;
+
+            if (matchResultScoreText != null)
+            {
+                matchResultScoreText.text =
+                    $"Puntaje: {score:D7}\nCombo máximo: {maxCombo}x";
+            }
+
+            return;
+        }
+
+        if (completedSong)
+        {
+            if (winPanel != null)
+                winPanel.SetActive(true);
+
+            if (winScoreText != null)
+                winScoreText.text = score.ToString("D7");
+
+            if (winComboText != null)
+                winComboText.text = $"Combo máximo: {maxCombo}x";
+        }
+        else
+        {
+            if (losePanel != null)
+                losePanel.SetActive(true);
+
+            if (loseMissesText != null)
+                loseMissesText.text = $"Te quedaste sin vidas\nPuntaje: {score:D7}";
+        }
     }
 
     public void ShowMatchResult(
@@ -446,8 +514,8 @@ public class UIManager : MonoBehaviour
         int rivalScore)
     {
         _gameStarted = false;
-        eliminatedIndicator?.SetActive(false);
-        pausePanel?.SetActive(false);
+        if (eliminatedIndicator != null) eliminatedIndicator.SetActive(false);
+        if (pausePanel != null) pausePanel.SetActive(false);
 
         string title = outcome switch
         {
@@ -476,7 +544,7 @@ public class UIManager : MonoBehaviour
         // Fallback: reutiliza los paneles que ya existían en el modo individual.
         if (outcome == MatchOutcome.Lose)
         {
-            losePanel?.SetActive(true);
+            if (losePanel != null) losePanel.SetActive(true);
 
             if (loseMissesText != null)
             {
@@ -486,7 +554,7 @@ public class UIManager : MonoBehaviour
         }
         else
         {
-            winPanel?.SetActive(true);
+            if (winPanel != null) winPanel.SetActive(true);
 
             if (winScoreText != null)
                 winScoreText.text = ownScore.ToString("D7");
@@ -501,7 +569,16 @@ public class UIManager : MonoBehaviour
 
     private void ShowEliminatedIndicator()
     {
-        eliminatedIndicator?.SetActive(true);
+        // En Single Player la eliminación termina el nivel inmediatamente y se
+        // muestra el panel de derrota. Este indicador sólo corresponde al 1v1.
+        if (matchManager != null &&
+            matchManager.CurrentMode == MatchMode.SinglePlayer)
+        {
+            return;
+        }
+
+        if (eliminatedIndicator != null)
+            eliminatedIndicator.SetActive(true);
 
         if (eliminatedText != null)
             eliminatedText.text = "ELIMINADO - PODÉS SEGUIR JUGANDO";
@@ -515,7 +592,7 @@ public class UIManager : MonoBehaviour
 
     private void HideTutorialPanel()
     {
-        tutorialPanel?.SetActive(false);
+        if (tutorialPanel != null) tutorialPanel.SetActive(false);
         Time.timeScale = 1f;
         _gameStarted = true;
 
