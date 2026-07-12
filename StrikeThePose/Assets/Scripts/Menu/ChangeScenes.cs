@@ -5,8 +5,24 @@ using UnityEngine.SceneManagement;
 
 public class ChangeScenes : MonoBehaviour
 {
-   public void SiguienteEscena()
+    public GameObject panel;
+    public void SiguienteEscena()
     {
         SceneManager.LoadScene("SelectorNivel");
+    }
+
+    public void CerrarJuego()
+    {
+        Application.Quit();
+    }
+
+    public void ShowCredits(string credits)
+    {
+        panel.SetActive(true);
+    }
+
+    public void CloseCredits(string credits)
+    {
+        panel.SetActive(false);
     }
 }

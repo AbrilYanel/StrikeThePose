@@ -654,7 +654,7 @@ public class UIManager : MonoBehaviour
                 losePanel.SetActive(true);
 
             if (loseMissesText != null)
-                loseMissesText.text = $"Te quedaste sin vidas\nPuntaje: {score:D7}";
+                loseMissesText.text = $"Perdiste\n\nPuntaje: \n{score:D7}";
         }
     }
 
