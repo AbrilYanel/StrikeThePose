@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1105 &110500000
+HumanTemplate:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: New Human Template
+  m_BoneTemplate:
+    Head: Bone_Cabeza
+    Hips: Bone_Todo
+    LeftFoot: Bone_Pierna.L
+    LeftHand: Bone_Dedos.L
+    LeftLowerArm: Bone_Antebrazo.L
+    LeftLowerLeg: Bone_Muslo.L
+    LeftShoulder: Bone_Hombro.L
+    LeftToes: Bone_Pie.L
+    LeftUpperArm: Bone_Brazo.L
+    LeftUpperLeg: Bone_Cadera.L
+    Neck: Bone_Cuello
+    RightFoot: Bone_Pierna.R
+    RightHand: Bone_Palma.R
+    RightLowerArm: Bone_Antebrazo.R
+    RightLowerLeg: Bone_Muslo.R
+    RightShoulder: Bone_Hombro.R
+    RightToes: Bone_Pie.R
+    RightUpperArm: Bone_Brazo.R
+    RightUpperLeg: Bone_Cadera.R
+    Spine: Bone_Pecho
