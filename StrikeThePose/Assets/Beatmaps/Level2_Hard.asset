@@ -1,0 +1,564 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 57a5892b79b89864885225e5e72599c4, type: 3}
+  m_Name: Level2_Hard
+  m_EditorClassIdentifier: 
+  song: {fileID: 8300000, guid: 06c1995832e2c1640ad4845b490d18ee, type: 3}
+  bpm: 142
+  startOffsetSeconds: 2.5
+  events:
+  - beat: 5
+    requiredPose: 1
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 7
+    requiredPose: 3
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 9
+    requiredPose: 2
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 11
+    requiredPose: 4
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 13
+    requiredPose: 5
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 15
+    requiredPose: 8
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 17
+    requiredPose: 1
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 19
+    requiredPose: 2
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 21
+    requiredPose: 3
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 23
+    requiredPose: 4
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 25
+    requiredPose: 6
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 27
+    requiredPose: 7
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 29
+    requiredPose: 1
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 31
+    requiredPose: 8
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 1
+    holdDuration: 0.6
+  - beat: 33
+    requiredPose: 2
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 35
+    requiredPose: 5
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 37
+    requiredPose: 3
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 39
+    requiredPose: 6
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 41
+    requiredPose: 4
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 43
+    requiredPose: 7
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 45
+    requiredPose: 1
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 47
+    requiredPose: 8
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 49
+    requiredPose: 2
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 51
+    requiredPose: 4
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 53
+    requiredPose: 5
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 55
+    requiredPose: 3
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 57
+    requiredPose: 6
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 59
+    requiredPose: 2
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 61
+    requiredPose: 7
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 1
+    holdDuration: 0.6
+  - beat: 63
+    requiredPose: 8
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 65
+    requiredPose: 1
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 67
+    requiredPose: 5
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 69
+    requiredPose: 3
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 71
+    requiredPose: 7
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 73
+    requiredPose: 2
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 75
+    requiredPose: 8
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 77
+    requiredPose: 4
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 1
+    holdDuration: 0.6
+  - beat: 79
+    requiredPose: 6
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 81
+    requiredPose: 1
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 83
+    requiredPose: 5
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 85
+    requiredPose: 3
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 87
+    requiredPose: 7
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 89
+    requiredPose: 2
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 91
+    requiredPose: 8
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 93
+    requiredPose: 4
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 1
+    holdDuration: 0.6
+  - beat: 95
+    requiredPose: 6
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 97
+    requiredPose: 3
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 99
+    requiredPose: 1
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 101
+    requiredPose: 5
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 103
+    requiredPose: 4
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 105
+    requiredPose: 7
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 107
+    requiredPose: 2
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 109
+    requiredPose: 8
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 111
+    requiredPose: 1
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 113
+    requiredPose: 6
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 1
+    holdDuration: 0.6
+  - beat: 115
+    requiredPose: 3
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 117
+    requiredPose: 5
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 119
+    requiredPose: 4
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 121
+    requiredPose: 1
+    holePositionX: -999
+    isBonusAreaStart: 1
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 137
+    requiredPose: 1
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 1
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 139
+    requiredPose: 1
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 141
+    requiredPose: 5
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 143
+    requiredPose: 3
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 145
+    requiredPose: 7
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 147
+    requiredPose: 2
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 149
+    requiredPose: 8
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 151
+    requiredPose: 4
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 153
+    requiredPose: 6
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 155
+    requiredPose: 1
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 157
+    requiredPose: 3
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 1
+    holdDuration: 0.6
+  - beat: 159
+    requiredPose: 5
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 161
+    requiredPose: 4
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 163
+    requiredPose: 7
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 165
+    requiredPose: 2
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 167
+    requiredPose: 8
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 169
+    requiredPose: 6
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 171
+    requiredPose: 4
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 0
+    holdDuration: 0
+  - beat: 173
+    requiredPose: 1
+    holePositionX: -999
+    isBonusAreaStart: 0
+    isBonusAreaEnd: 0
+    isHoldNote: 1
+    holdDuration: 1

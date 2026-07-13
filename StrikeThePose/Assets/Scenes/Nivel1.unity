@@ -603,7 +603,7 @@ MonoBehaviour:
   holdTickInterval: 0.1
   pointsPerHoldTick: 5
   perfectBonusAreaPoints: 0
-  useOnlyOnce: 1
+  useOnlyOnce: 0
 --- !u!4 &310856136
 Transform:
   m_ObjectHideFlags: 0
@@ -3051,7 +3051,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   inputSourceComponent: {fileID: 1509237979}
-  moveSpeed: 8
+  moveSpeed: 10
   xMin: -4
   xMax: 4
 --- !u!23 &1509237974

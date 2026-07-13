@@ -21,59 +21,126 @@ public class GamepadInputSource : MonoBehaviour, IPlayerInputSource
     [Range(0, 19)]
     [SerializeField] private int moveRightButton = 5;
 
-    [Header("Poses por botón")]
+    [Header("Botones de poses")]
     [Tooltip("Pose A: Triángulo.")]
     [Range(0, 19)]
     [SerializeField] private int poseAButton = 3;
+
+    [Tooltip("Pose B: Cuadrado.")]
+    [Range(0, 19)]
+    [SerializeField] private int poseBButton = 2;
+
     [Tooltip("Pose C: Equis/Cruz.")]
     [Range(0, 19)]
     [SerializeField] private int poseCButton = 0;
 
-    [Header("Poses B/D: D-Pad")]
+    [Tooltip("Pose D: Círculo.")]
+    [Range(0, 19)]
+    [SerializeField] private int poseDButton = 1;
+
+    [Header("D-Pad")]
     [SerializeField] private DPadMode dPadMode = DPadMode.Axis;
 
-    [Tooltip("Nombre exacto del eje creado en Project Settings > Input Manager.")]
+    [Header("D-Pad como ejes")]
+    [Tooltip("Eje horizontal: izquierda/derecha.")]
     [SerializeField] private string dPadHorizontalAxis = "P2_DPadHorizontal";
+    [Tooltip("Eje vertical: arriba/abajo.")]
+    [SerializeField] private string dPadVerticalAxis = "P2_DPadVertical";
     [Range(0.1f, 0.95f)]
     [SerializeField] private float dPadDeadZone = 0.5f;
-    [SerializeField] private bool invertDPadAxis;
+    [SerializeField] private bool invertDPadHorizontalAxis;
+    [SerializeField] private bool invertDPadVerticalAxis;
 
+    [Header("D-Pad como botones")]
+    [Tooltip("Sólo se usa si D Pad Mode está en Buttons.")]
+    [Range(0, 19)]
+    [SerializeField] private int dPadUpButton = 12;
     [Tooltip("Sólo se usa si D Pad Mode está en Buttons.")]
     [Range(0, 19)]
     [SerializeField] private int dPadLeftButton = 13;
     [Tooltip("Sólo se usa si D Pad Mode está en Buttons.")]
     [Range(0, 19)]
     [SerializeField] private int dPadRightButton = 14;
+    [Tooltip("Sólo se usa si D Pad Mode está en Buttons.")]
+    [Range(0, 19)]
+    [SerializeField] private int dPadDownButton = 15;
 
     public bool MoveLeft() => ReadButton(moveLeftButton);
     public bool MoveRight() => ReadButton(moveRightButton);
 
-    public bool PoseA() => ReadButton(poseAButton);
-    public bool PoseC() => ReadButton(poseCButton);
+    // Pose A = Triángulo O D-Pad arriba.
+    public bool PoseA()
+    {
+        return ReadButton(poseAButton) || ReadDPadUp();
+    }
 
+    // Pose B = Cuadrado O D-Pad izquierda.
     public bool PoseB()
+    {
+        return ReadButton(poseBButton) || ReadDPadLeft();
+    }
+
+    // Pose C = Equis O D-Pad abajo.
+    public bool PoseC()
+    {
+        return ReadButton(poseCButton) || ReadDPadDown();
+    }
+
+    // Pose D = Círculo O D-Pad derecha.
+    public bool PoseD()
+    {
+        return ReadButton(poseDButton) || ReadDPadRight();
+    }
+
+    private bool ReadDPadUp()
+    {
+        if (dPadMode == DPadMode.Buttons)
+            return ReadButton(dPadUpButton);
+
+        return ReadDPadVerticalAxis() > dPadDeadZone;
+    }
+
+    private bool ReadDPadDown()
+    {
+        if (dPadMode == DPadMode.Buttons)
+            return ReadButton(dPadDownButton);
+
+        return ReadDPadVerticalAxis() < -dPadDeadZone;
+    }
+
+    private bool ReadDPadLeft()
     {
         if (dPadMode == DPadMode.Buttons)
             return ReadButton(dPadLeftButton);
 
-        return ReadDPadAxis() < -dPadDeadZone;
+        return ReadDPadHorizontalAxis() < -dPadDeadZone;
     }
 
-    public bool PoseD()
+    private bool ReadDPadRight()
     {
         if (dPadMode == DPadMode.Buttons)
             return ReadButton(dPadRightButton);
 
-        return ReadDPadAxis() > dPadDeadZone;
+        return ReadDPadHorizontalAxis() > dPadDeadZone;
     }
 
-    private float ReadDPadAxis()
+    private float ReadDPadHorizontalAxis()
     {
-        if (string.IsNullOrWhiteSpace(dPadHorizontalAxis))
+        return ReadAxis(dPadHorizontalAxis, invertDPadHorizontalAxis);
+    }
+
+    private float ReadDPadVerticalAxis()
+    {
+        return ReadAxis(dPadVerticalAxis, invertDPadVerticalAxis);
+    }
+
+    private float ReadAxis(string axisName, bool invert)
+    {
+        if (string.IsNullOrWhiteSpace(axisName))
             return 0f;
 
-        float value = Input.GetAxisRaw(dPadHorizontalAxis);
-        return invertDPadAxis ? -value : value;
+        float value = Input.GetAxisRaw(axisName);
+        return invert ? -value : value;
     }
 
     private bool ReadButton(int buttonNumber)
